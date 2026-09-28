@@ -1,0 +1,4113 @@
+{
+  "addr": "0x59BBC0",
+  "asm": {
+    "name": "sub_59BBC0",
+    "start_ea": "0x59bbc0",
+    "segment": ".text",
+    "lines": [
+      {
+        "addr": "59bbc0",
+        "instruction": "push ebp",
+        "label": "sub_59BBC0"
+      },
+      {
+        "addr": "59bbc1",
+        "instruction": "mov ebp, esp"
+      },
+      {
+        "addr": "59bbc3",
+        "instruction": "and esp, 0FFFFFFF8h; Logical AND"
+      },
+      {
+        "addr": "59bbc6",
+        "instruction": "sub esp, 84h; Integer Subtraction"
+      },
+      {
+        "addr": "59bbcc",
+        "instruction": "mov eax, [ebp+n400]"
+      },
+      {
+        "addr": "59bbcf",
+        "instruction": "push ebx"
+      },
+      {
+        "addr": "59bbd0",
+        "instruction": "push esi"
+      },
+      {
+        "addr": "59bbd1",
+        "instruction": "cmp eax, 190h; Compare Two Operands"
+      },
+      {
+        "addr": "59bbd6",
+        "instruction": "push edi"
+      },
+      {
+        "addr": "59bbd7",
+        "instruction": "mov [esp+90h+var_80], ecx"
+      },
+      {
+        "addr": "59bbdb",
+        "instruction": "jg short loc_59BBE5; Jump if Greater (ZF=0 & SF=OF)",
+        "refs": [
+          {
+            "addr": "0x59bbe5",
+            "name": "loc_59BBE5"
+          }
+        ]
+      },
+      {
+        "addr": "59bbdd",
+        "instruction": "mov eax, 190h"
+      },
+      {
+        "addr": "59bbe2",
+        "instruction": "mov [ebp+n400], eax"
+      },
+      {
+        "addr": "59bbe5",
+        "instruction": "lea edi, ds:2[eax*8]; Load Effective Address",
+        "label": "loc_59BBE5"
+      },
+      {
+        "addr": "59bbec",
+        "instruction": "cmp edi, 64h ; 'd'; Compare Two Operands"
+      },
+      {
+        "addr": "59bbef",
+        "instruction": "jg short loc_59BBF6; Jump if Greater (ZF=0 & SF=OF)",
+        "refs": [
+          {
+            "addr": "0x59bbf6",
+            "name": "loc_59BBF6"
+          }
+        ]
+      },
+      {
+        "addr": "59bbf1",
+        "instruction": "mov edi, 64h ; 'd'"
+      },
+      {
+        "addr": "59bbf6",
+        "instruction": "lea eax, ds:0[edi*8]; Load Effective Address",
+        "label": "loc_59BBF6"
+      },
+      {
+        "addr": "59bbfd",
+        "instruction": "mov [esp+90h+var_54], edi"
+      },
+      {
+        "addr": "59bc01",
+        "instruction": "push eax; Size",
+        "comments": [
+          "Size"
+        ]
+      },
+      {
+        "addr": "59bc02",
+        "instruction": "call ??2@YAPAXI@Z; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x7c8e17",
+            "name": "??2@YAPAXI@Z"
+          }
+        ]
+      },
+      {
+        "addr": "59bc07",
+        "instruction": "xor ebx, ebx; Logical Exclusive OR"
+      },
+      {
+        "addr": "59bc09",
+        "instruction": "add esp, 4; Add"
+      },
+      {
+        "addr": "59bc0c",
+        "instruction": "cmp eax, ebx; Compare Two Operands"
+      },
+      {
+        "addr": "59bc0e",
+        "instruction": "jz short loc_59BC1D; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59bc1d",
+            "name": "loc_59BC1D"
+          }
+        ]
+      },
+      {
+        "addr": "59bc10",
+        "instruction": "lea ecx, [edi-1]; Load Effective Address"
+      },
+      {
+        "addr": "59bc13",
+        "instruction": "mov [esp+90h+Block], eax"
+      },
+      {
+        "addr": "59bc17",
+        "instruction": "mov dword ptr [esp+90h+var_30], ecx"
+      },
+      {
+        "addr": "59bc1b",
+        "instruction": "jmp short loc_59BC21; Jump",
+        "refs": [
+          {
+            "addr": "0x59bc21",
+            "name": "loc_59BC21"
+          }
+        ]
+      },
+      {
+        "addr": "59bc1d",
+        "instruction": "mov [esp+90h+Block], ebx",
+        "label": "loc_59BC1D"
+      },
+      {
+        "addr": "59bc21",
+        "instruction": "push 14h; Size",
+        "label": "loc_59BC21",
+        "comments": [
+          "Size"
+        ]
+      },
+      {
+        "addr": "59bc23",
+        "instruction": "call ??2@YAPAXI@Z; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x7c8e17",
+            "name": "??2@YAPAXI@Z"
+          }
+        ]
+      },
+      {
+        "addr": "59bc28",
+        "instruction": "mov esi, eax"
+      },
+      {
+        "addr": "59bc2a",
+        "instruction": "add esp, 4; Add"
+      },
+      {
+        "addr": "59bc2d",
+        "instruction": "cmp esi, ebx; Compare Two Operands"
+      },
+      {
+        "addr": "59bc2f",
+        "instruction": "jz short loc_59BC6D; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59bc6d",
+            "name": "loc_59BC6D"
+          }
+        ]
+      },
+      {
+        "addr": "59bc31",
+        "instruction": "lea edx, ds:4[edi*4]; Load Effective Address"
+      },
+      {
+        "addr": "59bc38",
+        "instruction": "mov [esi+0Ch], ebx"
+      },
+      {
+        "addr": "59bc3b",
+        "instruction": "push edx; Size",
+        "comments": [
+          "Size"
+        ]
+      },
+      {
+        "addr": "59bc3c",
+        "instruction": "mov dword ptr [esi+10h], 0FFFFFFFFh"
+      },
+      {
+        "addr": "59bc43",
+        "instruction": "mov [esi], ebx"
+      },
+      {
+        "addr": "59bc45",
+        "instruction": "mov [esi+4], edi"
+      },
+      {
+        "addr": "59bc48",
+        "instruction": "call ??2@YAPAXI@Z; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x7c8e17",
+            "name": "??2@YAPAXI@Z"
+          }
+        ]
+      },
+      {
+        "addr": "59bc4d",
+        "instruction": "mov ecx, [esi+4]"
+      },
+      {
+        "addr": "59bc50",
+        "instruction": "mov [esi+8], eax"
+      },
+      {
+        "addr": "59bc53",
+        "instruction": "add esp, 4; Add"
+      },
+      {
+        "addr": "59bc56",
+        "instruction": "xor eax, eax; Logical Exclusive OR"
+      },
+      {
+        "addr": "59bc58",
+        "instruction": "cmp ecx, ebx; Compare Two Operands"
+      },
+      {
+        "addr": "59bc5a",
+        "instruction": "jl short loc_59BC6F; Jump if Less (SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59bc6f",
+            "name": "loc_59BC6F"
+          }
+        ]
+      },
+      {
+        "addr": "59bc5c",
+        "instruction": "mov ecx, [esi+8]",
+        "label": "loc_59BC5C"
+      },
+      {
+        "addr": "59bc5f",
+        "instruction": "inc eax; Increment by 1"
+      },
+      {
+        "addr": "59bc60",
+        "instruction": "mov [ecx+eax*4-4], ebx"
+      },
+      {
+        "addr": "59bc64",
+        "instruction": "mov ecx, [esi+4]"
+      },
+      {
+        "addr": "59bc67",
+        "instruction": "cmp eax, ecx; Compare Two Operands"
+      },
+      {
+        "addr": "59bc69",
+        "instruction": "jle short loc_59BC5C; Jump if Less or Equal (ZF=1 | SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59bc5c",
+            "name": "loc_59BC5C"
+          }
+        ]
+      },
+      {
+        "addr": "59bc6b",
+        "instruction": "jmp short loc_59BC6F; Jump",
+        "refs": [
+          {
+            "addr": "0x59bc6f",
+            "name": "loc_59BC6F"
+          }
+        ]
+      },
+      {
+        "addr": "59bc6d",
+        "instruction": "xor esi, esi; Logical Exclusive OR",
+        "label": "loc_59BC6D"
+      },
+      {
+        "addr": "59bc6f",
+        "instruction": "mov ecx, [ebp+p_n2]",
+        "label": "loc_59BC6F"
+      },
+      {
+        "addr": "59bc72",
+        "instruction": "mov eax, [ecx]"
+      },
+      {
+        "addr": "59bc74",
+        "instruction": "cmp eax, ebx; Compare Two Operands"
+      },
+      {
+        "addr": "59bc76",
+        "instruction": "jnz loc_59BDEC; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59bdec",
+            "name": "loc_59BDEC"
+          }
+        ]
+      },
+      {
+        "addr": "59bc7c",
+        "instruction": "cmp [ecx+4], ebx; Compare Two Operands"
+      },
+      {
+        "addr": "59bc7f",
+        "instruction": "jnz loc_59BDEC; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59bdec",
+            "name": "loc_59BDEC"
+          }
+        ]
+      },
+      {
+        "addr": "59bc85",
+        "instruction": "mov [esp+90h+var_6C], ebx"
+      },
+      {
+        "addr": "59bc89",
+        "instruction": "mov edx, MouseClass__Instance.MapRect.Width",
+        "label": "loc_59BC89"
+      },
+      {
+        "addr": "59bc8f",
+        "instruction": "mov dword ptr [esp+90h+var_20+4], 0"
+      },
+      {
+        "addr": "59bc97",
+        "instruction": "lea ebx, [edx-1]; Load Effective Address"
+      },
+      {
+        "addr": "59bc9a",
+        "instruction": "lea eax, [ebx+1]; Load Effective Address"
+      },
+      {
+        "addr": "59bc9d",
+        "instruction": "mov dword ptr [esp+90h+var_20], eax"
+      },
+      {
+        "addr": "59bca1",
+        "instruction": "fild [esp+90h+var_20]; Load Integer"
+      },
+      {
+        "addr": "59bca5",
+        "instruction": "fstp [esp+90h+var_8]; Store Real and Pop"
+      },
+      {
+        "addr": "59bcac",
+        "instruction": "mov ecx, offset dst_",
+        "label": "loc_59BCAC",
+        "refs": [
+          {
+            "addr": "0xabe890",
+            "name": "dst_"
+          }
+        ]
+      },
+      {
+        "addr": "59bcb1",
+        "instruction": "call Randomizer__Random; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x65c780",
+            "name": "Randomizer::Random"
+          }
+        ]
+      },
+      {
+        "addr": "59bcb6",
+        "instruction": "mov dword ptr [esp+90h+var_28], eax"
+      },
+      {
+        "addr": "59bcba",
+        "instruction": "mov dword ptr [esp+90h+var_28+4], 0"
+      },
+      {
+        "addr": "59bcc2",
+        "instruction": "fild [esp+90h+var_28]; Load Integer"
+      },
+      {
+        "addr": "59bcc6",
+        "instruction": "fmul [esp+90h+var_8]; Multiply Real"
+      },
+      {
+        "addr": "59bccd",
+        "instruction": "fmul ds:dbl_7ED898; Multiply Real",
+        "refs": [
+          {
+            "addr": "0x7ed898",
+            "name": "dbl_7ED898"
+          }
+        ]
+      },
+      {
+        "addr": "59bcd3",
+        "instruction": "call Game__F2I64; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x7c5f00",
+            "name": "Game::F2I64"
+          }
+        ]
+      },
+      {
+        "addr": "59bcd8",
+        "instruction": "mov edi, eax"
+      },
+      {
+        "addr": "59bcda",
+        "instruction": "cmp edi, ebx; Compare Two Operands"
+      },
+      {
+        "addr": "59bcdc",
+        "instruction": "ja short loc_59BCAC; Jump if Above (CF=0 & ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59bcac",
+            "name": "loc_59BCAC"
+          }
+        ]
+      },
+      {
+        "addr": "59bcde",
+        "instruction": "mov ecx, MouseClass__Instance.MapRect.Height"
+      },
+      {
+        "addr": "59bce4",
+        "instruction": "mov dword ptr [esp+90h+var_48+4], 0"
+      },
+      {
+        "addr": "59bcec",
+        "instruction": "lea ebx, [ecx-1]; Load Effective Address"
+      },
+      {
+        "addr": "59bcef",
+        "instruction": "lea edx, [ebx+1]; Load Effective Address"
+      },
+      {
+        "addr": "59bcf2",
+        "instruction": "mov dword ptr [esp+90h+var_48], edx"
+      },
+      {
+        "addr": "59bcf6",
+        "instruction": "fild [esp+90h+var_48]; Load Integer"
+      },
+      {
+        "addr": "59bcfa",
+        "instruction": "fstp [esp+90h+var_8]; Store Real and Pop"
+      },
+      {
+        "addr": "59bd01",
+        "instruction": "mov ecx, offset dst_",
+        "label": "loc_59BD01",
+        "refs": [
+          {
+            "addr": "0xabe890",
+            "name": "dst_"
+          }
+        ]
+      },
+      {
+        "addr": "59bd06",
+        "instruction": "call Randomizer__Random; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x65c780",
+            "name": "Randomizer::Random"
+          }
+        ]
+      },
+      {
+        "addr": "59bd0b",
+        "instruction": "mov dword ptr [esp+90h+var_50], eax"
+      },
+      {
+        "addr": "59bd0f",
+        "instruction": "mov dword ptr [esp+90h+var_50+4], 0"
+      },
+      {
+        "addr": "59bd17",
+        "instruction": "fild [esp+90h+var_50]; Load Integer"
+      },
+      {
+        "addr": "59bd1b",
+        "instruction": "fmul [esp+90h+var_8]; Multiply Real"
+      },
+      {
+        "addr": "59bd22",
+        "instruction": "fmul ds:dbl_7ED898; Multiply Real",
+        "refs": [
+          {
+            "addr": "0x7ed898",
+            "name": "dbl_7ED898"
+          }
+        ]
+      },
+      {
+        "addr": "59bd28",
+        "instruction": "call Game__F2I64; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x7c5f00",
+            "name": "Game::F2I64"
+          }
+        ]
+      },
+      {
+        "addr": "59bd2d",
+        "instruction": "cmp eax, ebx; Compare Two Operands"
+      },
+      {
+        "addr": "59bd2f",
+        "instruction": "ja short loc_59BD01; Jump if Above (CF=0 & ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59bd01",
+            "name": "loc_59BD01"
+          }
+        ]
+      },
+      {
+        "addr": "59bd31",
+        "instruction": "mov dx, word ptr MouseClass__Instance.MapRect.Width"
+      },
+      {
+        "addr": "59bd38",
+        "instruction": "mov ecx, edi"
+      },
+      {
+        "addr": "59bd3a",
+        "instruction": "neg ecx; Two's Complement Negation"
+      },
+      {
+        "addr": "59bd3c",
+        "instruction": "mov word ptr [esp+90h+var_40+2], cx"
+      },
+      {
+        "addr": "59bd41",
+        "instruction": "mov word ptr [esp+90h+var_36], dx"
+      },
+      {
+        "addr": "59bd46",
+        "instruction": "mov ecx, [esp+90h+var_36]"
+      },
+      {
+        "addr": "59bd4a",
+        "instruction": "mov edx, [esp+90h+var_40+2]"
+      },
+      {
+        "addr": "59bd4e",
+        "instruction": "inc edi; Increment by 1"
+      },
+      {
+        "addr": "59bd4f",
+        "instruction": "add ecx, edx; Add"
+      },
+      {
+        "addr": "59bd51",
+        "instruction": "mov word ptr [esp+90h+var_30], di"
+      },
+      {
+        "addr": "59bd56",
+        "instruction": "mov word ptr [esp+90h+var_30+2], cx"
+      },
+      {
+        "addr": "59bd5b",
+        "instruction": "mov ecx, dword ptr [esp+90h+var_30]"
+      },
+      {
+        "addr": "59bd5f",
+        "instruction": "mov edx, dword ptr [esp+90h+var_30+2]"
+      },
+      {
+        "addr": "59bd63",
+        "instruction": "add ecx, eax; Add"
+      },
+      {
+        "addr": "59bd65",
+        "instruction": "add eax, edx; Add"
+      },
+      {
+        "addr": "59bd67",
+        "instruction": "mov word ptr [esp+90h+var_5C], cx"
+      },
+      {
+        "addr": "59bd6c",
+        "instruction": "mov word ptr [esp+90h+var_5C+2], ax"
+      },
+      {
+        "addr": "59bd71",
+        "instruction": "mov edx, [esp+90h+var_5C]"
+      },
+      {
+        "addr": "59bd75",
+        "instruction": "mov [esp+90h+var_7C], edx"
+      },
+      {
+        "addr": "59bd79",
+        "instruction": "mov edx, [esp+90h+var_6C]"
+      },
+      {
+        "addr": "59bd7d",
+        "instruction": "inc edx; Increment by 1"
+      },
+      {
+        "addr": "59bd7e",
+        "instruction": "cmp edx, 0C8h; Compare Two Operands"
+      },
+      {
+        "addr": "59bd84",
+        "instruction": "mov [esp+90h+var_6C], edx"
+      },
+      {
+        "addr": "59bd88",
+        "instruction": "jge short loc_59BDE1; Jump if Greater or Equal (SF=OF)",
+        "refs": [
+          {
+            "addr": "0x59bde1",
+            "name": "loc_59BDE1"
+          }
+        ]
+      },
+      {
+        "addr": "59bd8a",
+        "instruction": "mov edx, dword_ABED10",
+        "refs": [
+          {
+            "addr": "0xabed10",
+            "name": "dword_ABED10"
+          }
+        ]
+      },
+      {
+        "addr": "59bd90",
+        "instruction": "test edx, edx; Logical Compare"
+      },
+      {
+        "addr": "59bd92",
+        "instruction": "jz loc_59BC89; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59bc89",
+            "name": "loc_59BC89"
+          }
+        ]
+      },
+      {
+        "addr": "59bd98",
+        "instruction": "movsx eax, ax; Move with Sign-Extend"
+      },
+      {
+        "addr": "59bd9b",
+        "instruction": "imul eax, dword_89C2DC; Signed Multiply",
+        "refs": [
+          {
+            "addr": "0x89c2dc",
+            "name": "dword_89C2DC"
+          }
+        ]
+      },
+      {
+        "addr": "59bda2",
+        "instruction": "movsx ecx, cx; Move with Sign-Extend"
+      },
+      {
+        "addr": "59bda5",
+        "instruction": "add eax, ecx; Add"
+      },
+      {
+        "addr": "59bda7",
+        "instruction": "lea eax, [eax+eax*4]; Load Effective Address"
+      },
+      {
+        "addr": "59bdaa",
+        "instruction": "shl eax, 4; Shift Logical Left"
+      },
+      {
+        "addr": "59bdad",
+        "instruction": "mov ecx, [eax+edx+38h]"
+      },
+      {
+        "addr": "59bdb1",
+        "instruction": "test ecx, ecx; Logical Compare"
+      },
+      {
+        "addr": "59bdb3",
+        "instruction": "jnz loc_59BC89; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59bc89",
+            "name": "loc_59BC89"
+          }
+        ]
+      },
+      {
+        "addr": "59bdb9",
+        "instruction": "lea ecx, [esp+90h+var_7C]; Load Effective Address"
+      },
+      {
+        "addr": "59bdbd",
+        "instruction": "push ecx"
+      },
+      {
+        "addr": "59bdbe",
+        "instruction": "mov ecx, offset MouseClass__Instance",
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59bdc3",
+        "instruction": "call MapClass__GetCellAt_MapCrd; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x5657a0",
+            "name": "MapClass::GetCellAt_MapCrd"
+          }
+        ]
+      },
+      {
+        "addr": "59bdc8",
+        "instruction": "mov ecx, eax"
+      },
+      {
+        "addr": "59bdca",
+        "instruction": "call sub_4865D0; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x4865d0",
+            "name": "sub_4865D0"
+          }
+        ]
+      },
+      {
+        "addr": "59bdcf",
+        "instruction": "test al, al; Logical Compare"
+      },
+      {
+        "addr": "59bdd1",
+        "instruction": "jz loc_59BC89; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59bc89",
+            "name": "loc_59BC89"
+          }
+        ]
+      },
+      {
+        "addr": "59bdd7",
+        "instruction": "cmp [esp+90h+var_6C], 0C8h; Compare Two Operands"
+      },
+      {
+        "addr": "59bddf",
+        "instruction": "jl short loc_59BE02; Jump if Less (SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59be02",
+            "name": "loc_59BE02"
+          }
+        ]
+      },
+      {
+        "addr": "59bde1",
+        "instruction": "xor eax, eax; Logical Exclusive OR",
+        "label": "loc_59BDE1"
+      },
+      {
+        "addr": "59bde3",
+        "instruction": "pop edi"
+      },
+      {
+        "addr": "59bde4",
+        "instruction": "pop esi"
+      },
+      {
+        "addr": "59bde5",
+        "instruction": "pop ebx"
+      },
+      {
+        "addr": "59bde6",
+        "instruction": "mov esp, ebp"
+      },
+      {
+        "addr": "59bde8",
+        "instruction": "pop ebp"
+      },
+      {
+        "addr": "59bde9",
+        "instruction": "retn 20h ; ' '; Return Near from Procedure"
+      },
+      {
+        "addr": "59bdec",
+        "instruction": "mov dx, [ecx+4]",
+        "label": "loc_59BDEC"
+      },
+      {
+        "addr": "59bdf0",
+        "instruction": "mov word ptr [esp+90h+var_5C], ax"
+      },
+      {
+        "addr": "59bdf5",
+        "instruction": "mov word ptr [esp+90h+var_5C+2], dx"
+      },
+      {
+        "addr": "59bdfa",
+        "instruction": "mov eax, [esp+90h+var_5C]"
+      },
+      {
+        "addr": "59bdfe",
+        "instruction": "mov [esp+90h+var_7C], eax"
+      },
+      {
+        "addr": "59be02",
+        "instruction": "mov eax, [ebp+arg4]",
+        "label": "loc_59BE02"
+      },
+      {
+        "addr": "59be05",
+        "instruction": "mov edx, dword_ABE2F0",
+        "refs": [
+          {
+            "addr": "0xabe2f0",
+            "name": "dword_ABE2F0"
+          }
+        ]
+      },
+      {
+        "addr": "59be0b",
+        "instruction": "mov [esp+90h+var_60], 0"
+      },
+      {
+        "addr": "59be13",
+        "instruction": "mov [esp+90h+var_64], 0"
+      },
+      {
+        "addr": "59be1b",
+        "instruction": "mov ecx, [eax]"
+      },
+      {
+        "addr": "59be1d",
+        "instruction": "cmp ecx, edx; Compare Two Operands"
+      },
+      {
+        "addr": "59be1f",
+        "instruction": "jnz short loc_59BE48; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59be48",
+            "name": "loc_59BE48"
+          }
+        ]
+      },
+      {
+        "addr": "59be21",
+        "instruction": "mov edx, [eax+4]"
+      },
+      {
+        "addr": "59be24",
+        "instruction": "mov ecx, dword_ABE2F4",
+        "refs": [
+          {
+            "addr": "0xabe2f4",
+            "name": "dword_ABE2F4"
+          }
+        ]
+      },
+      {
+        "addr": "59be2a",
+        "instruction": "cmp edx, ecx; Compare Two Operands"
+      },
+      {
+        "addr": "59be2c",
+        "instruction": "jnz short loc_59BE48; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59be48",
+            "name": "loc_59BE48"
+          }
+        ]
+      },
+      {
+        "addr": "59be2e",
+        "instruction": "mov ecx, [eax+8]"
+      },
+      {
+        "addr": "59be31",
+        "instruction": "mov edx, dword_ABE2F8",
+        "refs": [
+          {
+            "addr": "0xabe2f8",
+            "name": "dword_ABE2F8"
+          }
+        ]
+      },
+      {
+        "addr": "59be37",
+        "instruction": "cmp ecx, edx; Compare Two Operands"
+      },
+      {
+        "addr": "59be39",
+        "instruction": "jnz short loc_59BE48; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59be48",
+            "name": "loc_59BE48"
+          }
+        ]
+      },
+      {
+        "addr": "59be3b",
+        "instruction": "mov edx, [eax+0Ch]"
+      },
+      {
+        "addr": "59be3e",
+        "instruction": "mov ecx, dword_ABE2FC",
+        "refs": [
+          {
+            "addr": "0xabe2fc",
+            "name": "dword_ABE2FC"
+          }
+        ]
+      },
+      {
+        "addr": "59be44",
+        "instruction": "cmp edx, ecx; Compare Two Operands"
+      },
+      {
+        "addr": "59be46",
+        "instruction": "jz short loc_59BE90; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59be90",
+            "name": "loc_59BE90"
+          }
+        ]
+      },
+      {
+        "addr": "59be48",
+        "instruction": "mov ecx, [eax+8]",
+        "label": "loc_59BE48"
+      },
+      {
+        "addr": "59be4b",
+        "instruction": "mov eax, [eax+0Ch]"
+      },
+      {
+        "addr": "59be4e",
+        "instruction": "cmp ecx, eax; Compare Two Operands"
+      },
+      {
+        "addr": "59be50",
+        "instruction": "mov [esp+90h+var_6C], ecx"
+      },
+      {
+        "addr": "59be54",
+        "instruction": "mov [esp+90h+var_5C], eax"
+      },
+      {
+        "addr": "59be58",
+        "instruction": "jle short loc_59BE76; Jump if Less or Equal (ZF=1 | SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59be76",
+            "name": "loc_59BE76"
+          }
+        ]
+      },
+      {
+        "addr": "59be5a",
+        "instruction": "fild [esp+90h+var_6C]; Load Integer"
+      },
+      {
+        "addr": "59be5e",
+        "instruction": "mov [esp+90h+var_60], 3F800000h"
+      },
+      {
+        "addr": "59be66",
+        "instruction": "fidiv [esp+90h+var_5C]; Divide Integer"
+      },
+      {
+        "addr": "59be6a",
+        "instruction": "fmul ds:dbl_7E5190; Multiply Real",
+        "refs": [
+          {
+            "addr": "0x7e5190",
+            "name": "dbl_7E5190"
+          }
+        ]
+      },
+      {
+        "addr": "59be70",
+        "instruction": "fstp [esp+90h+var_64]; Store Real and Pop"
+      },
+      {
+        "addr": "59be74",
+        "instruction": "jmp short loc_59BE90; Jump",
+        "refs": [
+          {
+            "addr": "0x59be90",
+            "name": "loc_59BE90"
+          }
+        ]
+      },
+      {
+        "addr": "59be76",
+        "instruction": "fild [esp+90h+var_5C]; Load Integer",
+        "label": "loc_59BE76"
+      },
+      {
+        "addr": "59be7a",
+        "instruction": "mov [esp+90h+var_64], 3F800000h"
+      },
+      {
+        "addr": "59be82",
+        "instruction": "fidiv [esp+90h+var_6C]; Divide Integer"
+      },
+      {
+        "addr": "59be86",
+        "instruction": "fmul ds:dbl_7E5190; Multiply Real",
+        "refs": [
+          {
+            "addr": "0x7e5190",
+            "name": "dbl_7E5190"
+          }
+        ]
+      },
+      {
+        "addr": "59be8c",
+        "instruction": "fstp [esp+90h+var_60]; Store Real and Pop"
+      },
+      {
+        "addr": "59be90",
+        "instruction": "movsx eax, word ptr [esp+90h+var_7C]; Move with Sign-Extend",
+        "label": "loc_59BE90"
+      },
+      {
+        "addr": "59be95",
+        "instruction": "movsx ecx, word ptr [esp+90h+var_7C+2]; Move with Sign-Extend"
+      },
+      {
+        "addr": "59be9a",
+        "instruction": "mov dword ptr [esp+90h+var_48], eax"
+      },
+      {
+        "addr": "59be9e",
+        "instruction": "mov edx, [esi]"
+      },
+      {
+        "addr": "59bea0",
+        "instruction": "fild dword ptr [esp+90h+var_48]; Load Integer"
+      },
+      {
+        "addr": "59bea4",
+        "instruction": "mov dword ptr [esp+90h+var_48], ecx"
+      },
+      {
+        "addr": "59bea8",
+        "instruction": "xor ecx, ecx; Logical Exclusive OR"
+      },
+      {
+        "addr": "59beaa",
+        "instruction": "xor eax, eax; Logical Exclusive OR"
+      },
+      {
+        "addr": "59beac",
+        "instruction": "cmp edx, ecx; Compare Two Operands"
+      },
+      {
+        "addr": "59beae",
+        "instruction": "fstp [esp+90h+var_28]; Store Real and Pop"
+      },
+      {
+        "addr": "59beb2",
+        "instruction": "fild dword ptr [esp+90h+var_48]; Load Integer"
+      },
+      {
+        "addr": "59beb6",
+        "instruction": "mov [esp+90h+var_74], ecx"
+      },
+      {
+        "addr": "59beba",
+        "instruction": "fstp [esp+90h+var_20]; Store Real and Pop"
+      },
+      {
+        "addr": "59bebe",
+        "instruction": "jl short loc_59BECE; Jump if Less (SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59bece",
+            "name": "loc_59BECE"
+          }
+        ]
+      },
+      {
+        "addr": "59bec0",
+        "instruction": "mov edx, [esi+8]",
+        "label": "loc_59BEC0"
+      },
+      {
+        "addr": "59bec3",
+        "instruction": "inc eax; Increment by 1"
+      },
+      {
+        "addr": "59bec4",
+        "instruction": "mov [edx+eax*4-4], ecx"
+      },
+      {
+        "addr": "59bec8",
+        "instruction": "mov edx, [esi]"
+      },
+      {
+        "addr": "59beca",
+        "instruction": "cmp eax, edx; Compare Two Operands"
+      },
+      {
+        "addr": "59becc",
+        "instruction": "jle short loc_59BEC0; Jump if Less or Equal (ZF=1 | SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59bec0",
+            "name": "loc_59BEC0"
+          }
+        ]
+      },
+      {
+        "addr": "59bece",
+        "instruction": "mov edi, [esp+90h+Block]",
+        "label": "loc_59BECE"
+      },
+      {
+        "addr": "59bed2",
+        "instruction": "mov [esi], ecx"
+      },
+      {
+        "addr": "59bed4",
+        "instruction": "mov eax, [esp+90h+var_7C]"
+      },
+      {
+        "addr": "59bed8",
+        "instruction": "mov [esp+90h+var_70], 1"
+      },
+      {
+        "addr": "59bee0",
+        "instruction": "mov [edi], eax"
+      },
+      {
+        "addr": "59bee2",
+        "instruction": "mov [edi+4], ecx"
+      },
+      {
+        "addr": "59bee5",
+        "instruction": "movsx eax, word ptr [esp+90h+var_7C+2]; Move with Sign-Extend"
+      },
+      {
+        "addr": "59beea",
+        "instruction": "imul eax, dword_89C2DC; Signed Multiply",
+        "refs": [
+          {
+            "addr": "0x89c2dc",
+            "name": "dword_89C2DC"
+          }
+        ]
+      },
+      {
+        "addr": "59bef1",
+        "instruction": "movsx ecx, word ptr [esp+90h+var_7C]; Move with Sign-Extend"
+      },
+      {
+        "addr": "59bef6",
+        "instruction": "add eax, ecx; Add"
+      },
+      {
+        "addr": "59bef8",
+        "instruction": "lea edx, [eax+eax*4]; Load Effective Address"
+      },
+      {
+        "addr": "59befb",
+        "instruction": "mov eax, [esp+90h+var_80]"
+      },
+      {
+        "addr": "59beff",
+        "instruction": "shl edx, 4; Shift Logical Left"
+      },
+      {
+        "addr": "59bf02",
+        "instruction": "mov ecx, [eax+308h]"
+      },
+      {
+        "addr": "59bf08",
+        "instruction": "mov eax, dword_ABED10",
+        "refs": [
+          {
+            "addr": "0xabed10",
+            "name": "dword_ABED10"
+          }
+        ]
+      },
+      {
+        "addr": "59bf0d",
+        "instruction": "mov [edx+eax+3Ch], ecx"
+      },
+      {
+        "addr": "59bf11",
+        "instruction": "mov ecx, [esi]"
+      },
+      {
+        "addr": "59bf13",
+        "instruction": "mov eax, [edi+4]"
+      },
+      {
+        "addr": "59bf16",
+        "instruction": "inc ecx; Increment by 1"
+      },
+      {
+        "addr": "59bf17",
+        "instruction": "mov edx, ecx"
+      },
+      {
+        "addr": "59bf19",
+        "instruction": "mov dword ptr [esp+90h+var_48], eax"
+      },
+      {
+        "addr": "59bf1d",
+        "instruction": "mov eax, [esi+4]"
+      },
+      {
+        "addr": "59bf20",
+        "instruction": "shr edx, 1; Shift Logical Right"
+      },
+      {
+        "addr": "59bf22",
+        "instruction": "cmp ecx, eax; Compare Two Operands"
+      },
+      {
+        "addr": "59bf24",
+        "instruction": "jnb short loc_59BF6B; Jump if Not Below (CF=0)",
+        "refs": [
+          {
+            "addr": "0x59bf6b",
+            "name": "loc_59BF6B"
+          }
+        ]
+      },
+      {
+        "addr": "59bf26",
+        "instruction": "cmp ecx, 1; Compare Two Operands"
+      },
+      {
+        "addr": "59bf29",
+        "instruction": "jbe short loc_59BF4E; Jump if Below or Equal (CF=1 | ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59bf4e",
+            "name": "loc_59BF4E"
+          }
+        ]
+      },
+      {
+        "addr": "59bf2b",
+        "instruction": "mov ebx, [esi+8]",
+        "label": "loc_59BF2B"
+      },
+      {
+        "addr": "59bf2e",
+        "instruction": "mov eax, [ebx+edx*4]"
+      },
+      {
+        "addr": "59bf31",
+        "instruction": "fld dword ptr [eax+4]; Load Real"
+      },
+      {
+        "addr": "59bf34",
+        "instruction": "fcomp dword ptr [esp+90h+var_48]; Compare Real and Pop"
+      },
+      {
+        "addr": "59bf38",
+        "instruction": "fnstsw ax; Store Status Word (no wait)"
+      },
+      {
+        "addr": "59bf3a",
+        "instruction": "test ah, 41h; Logical Compare"
+      },
+      {
+        "addr": "59bf3d",
+        "instruction": "jnz short loc_59BF4E; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59bf4e",
+            "name": "loc_59BF4E"
+          }
+        ]
+      },
+      {
+        "addr": "59bf3f",
+        "instruction": "mov eax, [ebx+edx*4]"
+      },
+      {
+        "addr": "59bf42",
+        "instruction": "mov [ebx+ecx*4], eax"
+      },
+      {
+        "addr": "59bf45",
+        "instruction": "mov ecx, edx"
+      },
+      {
+        "addr": "59bf47",
+        "instruction": "shr edx, 1; Shift Logical Right"
+      },
+      {
+        "addr": "59bf49",
+        "instruction": "cmp ecx, 1; Compare Two Operands"
+      },
+      {
+        "addr": "59bf4c",
+        "instruction": "ja short loc_59BF2B; Jump if Above (CF=0 & ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59bf2b",
+            "name": "loc_59BF2B"
+          }
+        ]
+      },
+      {
+        "addr": "59bf4e",
+        "instruction": "mov edx, [esi+8]",
+        "label": "loc_59BF4E"
+      },
+      {
+        "addr": "59bf51",
+        "instruction": "mov [edx+ecx*4], edi"
+      },
+      {
+        "addr": "59bf54",
+        "instruction": "mov ecx, [esi]"
+      },
+      {
+        "addr": "59bf56",
+        "instruction": "mov eax, [esi+0Ch]"
+      },
+      {
+        "addr": "59bf59",
+        "instruction": "inc ecx; Increment by 1"
+      },
+      {
+        "addr": "59bf5a",
+        "instruction": "cmp edi, eax; Compare Two Operands"
+      },
+      {
+        "addr": "59bf5c",
+        "instruction": "mov [esi], ecx"
+      },
+      {
+        "addr": "59bf5e",
+        "instruction": "jbe short loc_59BF63; Jump if Below or Equal (CF=1 | ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59bf63",
+            "name": "loc_59BF63"
+          }
+        ]
+      },
+      {
+        "addr": "59bf60",
+        "instruction": "mov [esi+0Ch], edi"
+      },
+      {
+        "addr": "59bf63",
+        "instruction": "cmp edi, [esi+10h]; Compare Two Operands",
+        "label": "loc_59BF63"
+      },
+      {
+        "addr": "59bf66",
+        "instruction": "jnb short loc_59BF6B; Jump if Not Below (CF=0)",
+        "refs": [
+          {
+            "addr": "0x59bf6b",
+            "name": "loc_59BF6B"
+          }
+        ]
+      },
+      {
+        "addr": "59bf68",
+        "instruction": "mov [esi+10h], edi"
+      },
+      {
+        "addr": "59bf6b",
+        "instruction": "mov ecx, [esi]",
+        "label": "loc_59BF6B"
+      },
+      {
+        "addr": "59bf6d",
+        "instruction": "test ecx, ecx; Logical Compare"
+      },
+      {
+        "addr": "59bf6f",
+        "instruction": "jnz short loc_59BF75; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59bf75",
+            "name": "loc_59BF75"
+          }
+        ]
+      },
+      {
+        "addr": "59bf71",
+        "instruction": "xor edi, edi; Logical Exclusive OR"
+      },
+      {
+        "addr": "59bf73",
+        "instruction": "jmp short loc_59BF9B; Jump",
+        "refs": [
+          {
+            "addr": "0x59bf9b",
+            "name": "loc_59BF9B"
+          }
+        ]
+      },
+      {
+        "addr": "59bf75",
+        "instruction": "mov eax, [esi+8]",
+        "label": "loc_59BF75"
+      },
+      {
+        "addr": "59bf78",
+        "instruction": "push 1"
+      },
+      {
+        "addr": "59bf7a",
+        "instruction": "mov ecx, [eax+ecx*4]"
+      },
+      {
+        "addr": "59bf7d",
+        "instruction": "mov edi, [eax+4]"
+      },
+      {
+        "addr": "59bf80",
+        "instruction": "mov [eax+4], ecx"
+      },
+      {
+        "addr": "59bf83",
+        "instruction": "mov edx, [esi]"
+      },
+      {
+        "addr": "59bf85",
+        "instruction": "mov eax, [esi+8]"
+      },
+      {
+        "addr": "59bf88",
+        "instruction": "mov dword ptr [eax+edx*4], 0"
+      },
+      {
+        "addr": "59bf8f",
+        "instruction": "mov ecx, [esi]"
+      },
+      {
+        "addr": "59bf91",
+        "instruction": "dec ecx; Decrement by 1"
+      },
+      {
+        "addr": "59bf92",
+        "instruction": "mov [esi], ecx"
+      },
+      {
+        "addr": "59bf94",
+        "instruction": "mov ecx, esi"
+      },
+      {
+        "addr": "59bf96",
+        "instruction": "call sub_5AD870; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x5ad870",
+            "name": "sub_5AD870"
+          }
+        ]
+      },
+      {
+        "addr": "59bf9b",
+        "instruction": "mov eax, [ebp+arg4]",
+        "label": "loc_59BF9B"
+      },
+      {
+        "addr": "59bf9e",
+        "instruction": "mov [esp+90h+var_6C], edi"
+      },
+      {
+        "addr": "59bfa2",
+        "instruction": "fild dword ptr [eax+8]; Load Integer"
+      },
+      {
+        "addr": "59bfa5",
+        "instruction": "fmul ds:dbl_7E1738; Multiply Real",
+        "refs": [
+          {
+            "addr": "0x7e1738",
+            "name": "dbl_7E1738"
+          }
+        ]
+      },
+      {
+        "addr": "59bfab",
+        "instruction": "fld st; Load Real"
+      },
+      {
+        "addr": "59bfad",
+        "instruction": "fmul st, st(1); Multiply Real"
+      },
+      {
+        "addr": "59bfaf",
+        "instruction": "fdivr ds:dbl_7E1718; Divide Real Reversed",
+        "refs": [
+          {
+            "addr": "0x7e1718",
+            "name": "dbl_7E1718"
+          }
+        ]
+      },
+      {
+        "addr": "59bfb5",
+        "instruction": "fstp [esp+90h+var_10]; Store Real and Pop"
+      },
+      {
+        "addr": "59bfbc",
+        "instruction": "fstp st; Store Real and Pop"
+      },
+      {
+        "addr": "59bfbe",
+        "instruction": "fild dword ptr [eax+0Ch]; Load Integer"
+      },
+      {
+        "addr": "59bfc1",
+        "instruction": "mov eax, [ebp+n400]"
+      },
+      {
+        "addr": "59bfc4",
+        "instruction": "test eax, eax; Logical Compare"
+      },
+      {
+        "addr": "59bfc6",
+        "instruction": "fmul ds:dbl_7E1738; Multiply Real",
+        "refs": [
+          {
+            "addr": "0x7e1738",
+            "name": "dbl_7E1738"
+          }
+        ]
+      },
+      {
+        "addr": "59bfcc",
+        "instruction": "fld st; Load Real"
+      },
+      {
+        "addr": "59bfce",
+        "instruction": "fmul st, st(1); Multiply Real"
+      },
+      {
+        "addr": "59bfd0",
+        "instruction": "fdivr ds:dbl_7E1718; Divide Real Reversed",
+        "refs": [
+          {
+            "addr": "0x7e1718",
+            "name": "dbl_7E1718"
+          }
+        ]
+      },
+      {
+        "addr": "59bfd6",
+        "instruction": "fstp [esp+90h+var_18]; Store Real and Pop"
+      },
+      {
+        "addr": "59bfda",
+        "instruction": "fstp st; Store Real and Pop"
+      },
+      {
+        "addr": "59bfdc",
+        "instruction": "jle loc_59C332; Jump if Less or Equal (ZF=1 | SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59c332",
+            "name": "loc_59C332"
+          }
+        ]
+      },
+      {
+        "addr": "59bfe2",
+        "instruction": "test edi, edi; Logical Compare",
+        "label": "loc_59BFE2"
+      },
+      {
+        "addr": "59bfe4",
+        "instruction": "jz loc_59C332; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c332",
+            "name": "loc_59C332"
+          }
+        ]
+      },
+      {
+        "addr": "59bfea",
+        "instruction": "mov ecx, dword_ABED10",
+        "refs": [
+          {
+            "addr": "0xabed10",
+            "name": "dword_ABED10"
+          }
+        ]
+      },
+      {
+        "addr": "59bff0",
+        "instruction": "test ecx, ecx; Logical Compare"
+      },
+      {
+        "addr": "59bff2",
+        "instruction": "jz short loc_59C018; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c018",
+            "name": "loc_59C018"
+          }
+        ]
+      },
+      {
+        "addr": "59bff4",
+        "instruction": "movsx eax, word ptr [edi+2]; Move with Sign-Extend"
+      },
+      {
+        "addr": "59bff8",
+        "instruction": "imul eax, dword_89C2DC; Signed Multiply",
+        "refs": [
+          {
+            "addr": "0x89c2dc",
+            "name": "dword_89C2DC"
+          }
+        ]
+      },
+      {
+        "addr": "59bfff",
+        "instruction": "movsx edx, word ptr [edi]; Move with Sign-Extend"
+      },
+      {
+        "addr": "59c002",
+        "instruction": "add eax, edx; Add"
+      },
+      {
+        "addr": "59c004",
+        "instruction": "mov edx, [esp+90h+var_80]"
+      },
+      {
+        "addr": "59c008",
+        "instruction": "mov edx, [edx+308h]"
+      },
+      {
+        "addr": "59c00e",
+        "instruction": "lea eax, [eax+eax*4]; Load Effective Address"
+      },
+      {
+        "addr": "59c011",
+        "instruction": "shl eax, 4; Shift Logical Left"
+      },
+      {
+        "addr": "59c014",
+        "instruction": "mov [eax+ecx+38h], edx"
+      },
+      {
+        "addr": "59c018",
+        "instruction": "push edi",
+        "label": "loc_59C018"
+      },
+      {
+        "addr": "59c019",
+        "instruction": "mov ecx, offset MouseClass__Instance",
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59c01e",
+        "instruction": "call MapClass__GetCellAt_MapCrd; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x5657a0",
+            "name": "MapClass::GetCellAt_MapCrd"
+          }
+        ]
+      },
+      {
+        "addr": "59c023",
+        "instruction": "mov ecx, [esp+90h+Block]"
+      },
+      {
+        "addr": "59c027",
+        "instruction": "mov edx, [esp+90h+var_70]"
+      },
+      {
+        "addr": "59c02b",
+        "instruction": "mov dword ptr [eax+38h], 0"
+      },
+      {
+        "addr": "59c032",
+        "instruction": "mov ebx, Width",
+        "refs": [
+          {
+            "addr": "0xabed04",
+            "name": "Width"
+          }
+        ]
+      },
+      {
+        "addr": "59c038",
+        "instruction": "xor eax, eax; Logical Exclusive OR"
+      },
+      {
+        "addr": "59c03a",
+        "instruction": "lea ecx, [ecx+edx*8]; Load Effective Address"
+      },
+      {
+        "addr": "59c03d",
+        "instruction": "mov dword ptr [esp+90h+var_48], eax"
+      },
+      {
+        "addr": "59c041",
+        "instruction": "mov dword ptr [esp+90h+var_50], ecx"
+      },
+      {
+        "addr": "59c045",
+        "instruction": "jmp short loc_59C04B; Jump",
+        "refs": [
+          {
+            "addr": "0x59c04b",
+            "name": "loc_59C04B"
+          }
+        ]
+      },
+      {
+        "addr": "59c047",
+        "instruction": "mov edi, [esp+90h+var_6C]",
+        "label": "loc_59C047"
+      },
+      {
+        "addr": "59c04b",
+        "instruction": "and eax, 7; Logical AND",
+        "label": "loc_59C04B"
+      },
+      {
+        "addr": "59c04e",
+        "instruction": "lea ecx, ds:89F688h[eax*4]; Load Effective Address"
+      },
+      {
+        "addr": "59c055",
+        "instruction": "mov ax, Neighbours.X[eax*4]",
+        "refs": [
+          {
+            "addr": "0x89f688",
+            "name": "Neighbours"
+          }
+        ]
+      },
+      {
+        "addr": "59c05d",
+        "instruction": "mov cx, [ecx+2]"
+      },
+      {
+        "addr": "59c061",
+        "instruction": "add ax, [edi]; Add"
+      },
+      {
+        "addr": "59c064",
+        "instruction": "add cx, [edi+2]; Add"
+      },
+      {
+        "addr": "59c068",
+        "instruction": "mov word ptr [esp+90h+var_58], ax"
+      },
+      {
+        "addr": "59c06d",
+        "instruction": "mov word ptr [esp+90h+var_58+2], cx"
+      },
+      {
+        "addr": "59c072",
+        "instruction": "mov edx, [esp+90h+var_58]"
+      },
+      {
+        "addr": "59c076",
+        "instruction": "mov [esp+90h+pMapCoord], edx"
+      },
+      {
+        "addr": "59c07a",
+        "instruction": "movsx edx, ax; Move with Sign-Extend"
+      },
+      {
+        "addr": "59c07d",
+        "instruction": "movsx eax, cx; Move with Sign-Extend"
+      },
+      {
+        "addr": "59c080",
+        "instruction": "lea ecx, [eax+edx]; Load Effective Address"
+      },
+      {
+        "addr": "59c083",
+        "instruction": "cmp ecx, ebx; Compare Two Operands"
+      },
+      {
+        "addr": "59c085",
+        "instruction": "jle loc_59C2A8; Jump if Less or Equal (ZF=1 | SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59c2a8",
+            "name": "loc_59C2A8"
+          }
+        ]
+      },
+      {
+        "addr": "59c08b",
+        "instruction": "mov edi, edx"
+      },
+      {
+        "addr": "59c08d",
+        "instruction": "sub edi, eax; Integer Subtraction"
+      },
+      {
+        "addr": "59c08f",
+        "instruction": "cmp edi, ebx; Compare Two Operands"
+      },
+      {
+        "addr": "59c091",
+        "instruction": "jge loc_59C2A8; Jump if Greater or Equal (SF=OF)",
+        "refs": [
+          {
+            "addr": "0x59c2a8",
+            "name": "loc_59C2A8"
+          }
+        ]
+      },
+      {
+        "addr": "59c097",
+        "instruction": "mov edi, eax"
+      },
+      {
+        "addr": "59c099",
+        "instruction": "sub edi, edx; Integer Subtraction"
+      },
+      {
+        "addr": "59c09b",
+        "instruction": "cmp edi, ebx; Compare Two Operands"
+      },
+      {
+        "addr": "59c09d",
+        "instruction": "jge loc_59C2A8; Jump if Greater or Equal (SF=OF)",
+        "refs": [
+          {
+            "addr": "0x59c2a8",
+            "name": "loc_59C2A8"
+          }
+        ]
+      },
+      {
+        "addr": "59c0a3",
+        "instruction": "cmp ecx, Width_1; Compare Two Operands",
+        "refs": [
+          {
+            "addr": "0xabed08",
+            "name": "Width_1"
+          }
+        ]
+      },
+      {
+        "addr": "59c0a9",
+        "instruction": "jg loc_59C2A8; Jump if Greater (ZF=0 & SF=OF)",
+        "refs": [
+          {
+            "addr": "0x59c2a8",
+            "name": "loc_59C2A8"
+          }
+        ]
+      },
+      {
+        "addr": "59c0af",
+        "instruction": "imul eax, dword_89C2DC; Signed Multiply",
+        "refs": [
+          {
+            "addr": "0x89c2dc",
+            "name": "dword_89C2DC"
+          }
+        ]
+      },
+      {
+        "addr": "59c0b6",
+        "instruction": "mov ecx, dword_ABED10",
+        "refs": [
+          {
+            "addr": "0xabed10",
+            "name": "dword_ABED10"
+          }
+        ]
+      },
+      {
+        "addr": "59c0bc",
+        "instruction": "add eax, edx; Add"
+      },
+      {
+        "addr": "59c0be",
+        "instruction": "lea edi, [eax+eax*4]; Load Effective Address"
+      },
+      {
+        "addr": "59c0c1",
+        "instruction": "shl edi, 4; Shift Logical Left"
+      },
+      {
+        "addr": "59c0c4",
+        "instruction": "add edi, ecx; Add"
+      },
+      {
+        "addr": "59c0c6",
+        "instruction": "mov eax, [edi+38h]"
+      },
+      {
+        "addr": "59c0c9",
+        "instruction": "test eax, eax; Logical Compare"
+      },
+      {
+        "addr": "59c0cb",
+        "instruction": "jnz loc_59C2A8; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c2a8",
+            "name": "loc_59C2A8"
+          }
+        ]
+      },
+      {
+        "addr": "59c0d1",
+        "instruction": "mov ecx, [esp+90h+var_80]"
+      },
+      {
+        "addr": "59c0d5",
+        "instruction": "mov eax, [edi+3Ch]"
+      },
+      {
+        "addr": "59c0d8",
+        "instruction": "cmp eax, [ecx+308h]; Compare Two Operands"
+      },
+      {
+        "addr": "59c0de",
+        "instruction": "jz loc_59C2A8; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c2a8",
+            "name": "loc_59C2A8"
+          }
+        ]
+      },
+      {
+        "addr": "59c0e4",
+        "instruction": "lea edx, [esp+90h+pMapCoord]; Load Effective Address"
+      },
+      {
+        "addr": "59c0e8",
+        "instruction": "mov ecx, offset MouseClass__Instance",
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59c0ed",
+        "instruction": "push edx"
+      },
+      {
+        "addr": "59c0ee",
+        "instruction": "call MapClass__GetCellAt_MapCrd; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x5657a0",
+            "name": "MapClass::GetCellAt_MapCrd"
+          }
+        ]
+      },
+      {
+        "addr": "59c0f3",
+        "instruction": "mov ecx, eax"
+      },
+      {
+        "addr": "59c0f5",
+        "instruction": "call sub_4865D0; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x4865d0",
+            "name": "sub_4865D0"
+          }
+        ]
+      },
+      {
+        "addr": "59c0fa",
+        "instruction": "test al, al; Logical Compare"
+      },
+      {
+        "addr": "59c0fc",
+        "instruction": "jz loc_59C2A2; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c2a2",
+            "name": "loc_59C2A2"
+          }
+        ]
+      },
+      {
+        "addr": "59c102",
+        "instruction": "mov eax, [esp+90h+var_70]"
+      },
+      {
+        "addr": "59c106",
+        "instruction": "mov ecx, [esp+90h+var_54]"
+      },
+      {
+        "addr": "59c10a",
+        "instruction": "cmp eax, ecx; Compare Two Operands"
+      },
+      {
+        "addr": "59c10c",
+        "instruction": "jge loc_59C2A2; Jump if Greater or Equal (SF=OF)",
+        "refs": [
+          {
+            "addr": "0x59c2a2",
+            "name": "loc_59C2A2"
+          }
+        ]
+      },
+      {
+        "addr": "59c112",
+        "instruction": "mov ecx, dword ptr [esp+90h+var_18+4]"
+      },
+      {
+        "addr": "59c116",
+        "instruction": "mov edx, dword ptr [esp+90h+var_18]"
+      },
+      {
+        "addr": "59c11a",
+        "instruction": "mov eax, dword ptr [esp+90h+var_10+4]"
+      },
+      {
+        "addr": "59c121",
+        "instruction": "push ecx"
+      },
+      {
+        "addr": "59c122",
+        "instruction": "mov ecx, dword ptr [esp+94h+var_10]"
+      },
+      {
+        "addr": "59c129",
+        "instruction": "push edx; double",
+        "comments": [
+          "double"
+        ]
+      },
+      {
+        "addr": "59c12a",
+        "instruction": "mov edx, [ebp+argC]"
+      },
+      {
+        "addr": "59c12d",
+        "instruction": "push eax"
+      },
+      {
+        "addr": "59c12e",
+        "instruction": "mov eax, [ebp+arg4]"
+      },
+      {
+        "addr": "59c131",
+        "instruction": "push ecx; double",
+        "comments": [
+          "double"
+        ]
+      },
+      {
+        "addr": "59c132",
+        "instruction": "push edx; int",
+        "comments": [
+          "int"
+        ]
+      },
+      {
+        "addr": "59c133",
+        "instruction": "lea ecx, [esp+0A4h+pMapCoord]; Load Effective Address"
+      },
+      {
+        "addr": "59c137",
+        "instruction": "push eax; int",
+        "comments": [
+          "int"
+        ]
+      },
+      {
+        "addr": "59c138",
+        "instruction": "push ecx; pMapCoord",
+        "comments": [
+          "pMapCoord"
+        ]
+      },
+      {
+        "addr": "59c139",
+        "instruction": "mov ecx, [esp+0ACh+var_80]"
+      },
+      {
+        "addr": "59c13d",
+        "instruction": "call sub_59BAB0; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x59bab0",
+            "name": "sub_59BAB0"
+          }
+        ]
+      },
+      {
+        "addr": "59c142",
+        "instruction": "test al, al; Logical Compare"
+      },
+      {
+        "addr": "59c144",
+        "instruction": "jz loc_59C2A2; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c2a2",
+            "name": "loc_59C2A2"
+          }
+        ]
+      },
+      {
+        "addr": "59c14a",
+        "instruction": "fld [esp+90h+var_28]; Load Real"
+      },
+      {
+        "addr": "59c14e",
+        "instruction": "mov ebx, dword ptr [esp+90h+var_50]"
+      },
+      {
+        "addr": "59c152",
+        "instruction": "mov edx, [esp+90h+pMapCoord]"
+      },
+      {
+        "addr": "59c156",
+        "instruction": "fadd ds:dbl_7E1738; Add Real",
+        "refs": [
+          {
+            "addr": "0x7e1738",
+            "name": "dbl_7E1738"
+          }
+        ]
+      },
+      {
+        "addr": "59c15c",
+        "instruction": "mov [ebx], edx"
+      },
+      {
+        "addr": "59c15e",
+        "instruction": "call Game__F2I64; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x7c5f00",
+            "name": "Game::F2I64"
+          }
+        ]
+      },
+      {
+        "addr": "59c163",
+        "instruction": "fld [esp+90h+var_20]; Load Real"
+      },
+      {
+        "addr": "59c167",
+        "instruction": "fadd ds:dbl_7E1738; Add Real",
+        "refs": [
+          {
+            "addr": "0x7e1738",
+            "name": "dbl_7E1738"
+          }
+        ]
+      },
+      {
+        "addr": "59c16d",
+        "instruction": "mov word ptr [esp+90h+var_5C], ax"
+      },
+      {
+        "addr": "59c172",
+        "instruction": "call Game__F2I64; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x7c5f00",
+            "name": "Game::F2I64"
+          }
+        ]
+      },
+      {
+        "addr": "59c177",
+        "instruction": "mov word ptr [esp+90h+var_5C+2], ax"
+      },
+      {
+        "addr": "59c17c",
+        "instruction": "mov ecx, [esp+90h+var_5C]"
+      },
+      {
+        "addr": "59c180",
+        "instruction": "mov [esp+90h+var_40], ecx"
+      },
+      {
+        "addr": "59c184",
+        "instruction": "mov cl, [ebp+arg1C]"
+      },
+      {
+        "addr": "59c187",
+        "instruction": "test cl, cl; Logical Compare"
+      },
+      {
+        "addr": "59c189",
+        "instruction": "jz short loc_59C1B2; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c1b2",
+            "name": "loc_59C1B2"
+          }
+        ]
+      },
+      {
+        "addr": "59c18b",
+        "instruction": "mov edx, [esp+90h+var_64]"
+      },
+      {
+        "addr": "59c18f",
+        "instruction": "mov eax, [esp+90h+var_60]"
+      },
+      {
+        "addr": "59c193",
+        "instruction": "mov ecx, [ebp+p_MapCoords]"
+      },
+      {
+        "addr": "59c196",
+        "instruction": "push edx; float",
+        "comments": [
+          "float"
+        ]
+      },
+      {
+        "addr": "59c197",
+        "instruction": "mov edx, [ebp+arg4]"
+      },
+      {
+        "addr": "59c19a",
+        "instruction": "push eax; float",
+        "comments": [
+          "float"
+        ]
+      },
+      {
+        "addr": "59c19b",
+        "instruction": "push ecx; p_MapCoords",
+        "comments": [
+          "p_MapCoords"
+        ]
+      },
+      {
+        "addr": "59c19c",
+        "instruction": "lea eax, [esp+9Ch+pMapCoord]; Load Effective Address"
+      },
+      {
+        "addr": "59c1a0",
+        "instruction": "push edx; int",
+        "comments": [
+          "int"
+        ]
+      },
+      {
+        "addr": "59c1a1",
+        "instruction": "lea ecx, [esp+0A0h+var_40]; Load Effective Address"
+      },
+      {
+        "addr": "59c1a5",
+        "instruction": "push eax; pMapCoord",
+        "comments": [
+          "pMapCoord"
+        ]
+      },
+      {
+        "addr": "59c1a6",
+        "instruction": "push ecx; pMapCoord",
+        "comments": [
+          "pMapCoord"
+        ]
+      },
+      {
+        "addr": "59c1a7",
+        "instruction": "mov ecx, [esp+0A8h+var_80]"
+      },
+      {
+        "addr": "59c1ab",
+        "instruction": "call sub_59B940; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x59b940",
+            "name": "sub_59B940"
+          }
+        ]
+      },
+      {
+        "addr": "59c1b0",
+        "instruction": "jmp short loc_59C221; Jump",
+        "refs": [
+          {
+            "addr": "0x59c221",
+            "name": "loc_59C221"
+          }
+        ]
+      },
+      {
+        "addr": "59c1b2",
+        "instruction": "movsx edx, word ptr [esp+90h+var_5C]; Move with Sign-Extend",
+        "label": "loc_59C1B2"
+      },
+      {
+        "addr": "59c1b7",
+        "instruction": "movsx ecx, word ptr [esp+90h+pMapCoord]; Move with Sign-Extend"
+      },
+      {
+        "addr": "59c1bc",
+        "instruction": "sub ecx, edx; Integer Subtraction"
+      },
+      {
+        "addr": "59c1be",
+        "instruction": "sub esp, 8; Integer Subtraction"
+      },
+      {
+        "addr": "59c1c1",
+        "instruction": "movsx edx, ax; Move with Sign-Extend"
+      },
+      {
+        "addr": "59c1c4",
+        "instruction": "movsx eax, word ptr [esp+98h+pMapCoord+2]; Move with Sign-Extend"
+      },
+      {
+        "addr": "59c1c9",
+        "instruction": "sub eax, edx; Integer Subtraction"
+      },
+      {
+        "addr": "59c1cb",
+        "instruction": "mov edx, ecx"
+      },
+      {
+        "addr": "59c1cd",
+        "instruction": "imul edx, ecx; Signed Multiply"
+      },
+      {
+        "addr": "59c1d0",
+        "instruction": "mov ecx, eax"
+      },
+      {
+        "addr": "59c1d2",
+        "instruction": "imul ecx, eax; Signed Multiply"
+      },
+      {
+        "addr": "59c1d5",
+        "instruction": "add edx, ecx; Add"
+      },
+      {
+        "addr": "59c1d7",
+        "instruction": "mov dword ptr [esp+98h+var_50], edx"
+      },
+      {
+        "addr": "59c1db",
+        "instruction": "fild dword ptr [esp+98h+var_50]; Load Integer"
+      },
+      {
+        "addr": "59c1df",
+        "instruction": "fstp [esp+98h+var_98]; double",
+        "comments": [
+          "double"
+        ]
+      },
+      {
+        "addr": "59c1e2",
+        "instruction": "call YRMath__sqrt; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x4cac40",
+            "name": "YRMath::sqrt"
+          }
+        ]
+      },
+      {
+        "addr": "59c1e7",
+        "instruction": "fstp [esp+98h+var_30]; Store Real and Pop"
+      },
+      {
+        "addr": "59c1eb",
+        "instruction": "add esp, 8; Add"
+      },
+      {
+        "addr": "59c1ee",
+        "instruction": "mov ecx, offset dst_",
+        "refs": [
+          {
+            "addr": "0xabe890",
+            "name": "dst_"
+          }
+        ]
+      },
+      {
+        "addr": "59c1f3",
+        "instruction": "call Randomizer__Random; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x65c780",
+            "name": "Randomizer::Random"
+          }
+        ]
+      },
+      {
+        "addr": "59c1f8",
+        "instruction": "mov dword ptr [esp+90h+var_8], eax"
+      },
+      {
+        "addr": "59c1ff",
+        "instruction": "mov dword ptr [esp+90h+var_8+4], 0"
+      },
+      {
+        "addr": "59c20a",
+        "instruction": "fild [esp+90h+var_8]; Load Integer"
+      },
+      {
+        "addr": "59c211",
+        "instruction": "fmul ds:dbl_7ED808; Multiply Real",
+        "refs": [
+          {
+            "addr": "0x7ed808",
+            "name": "dbl_7ED808"
+          }
+        ]
+      },
+      {
+        "addr": "59c217",
+        "instruction": "fmul ds:dbl_7ED898; Multiply Real",
+        "refs": [
+          {
+            "addr": "0x7ed898",
+            "name": "dbl_7ED898"
+          }
+        ]
+      },
+      {
+        "addr": "59c21d",
+        "instruction": "fadd [esp+90h+var_30]; Add Real"
+      },
+      {
+        "addr": "59c221",
+        "instruction": "mov edx, [esp+90h+var_80]",
+        "label": "loc_59C221"
+      },
+      {
+        "addr": "59c225",
+        "instruction": "mov ecx, [esp+90h+var_70]"
+      },
+      {
+        "addr": "59c229",
+        "instruction": "fstp dword ptr [ebx+4]; Store Real and Pop"
+      },
+      {
+        "addr": "59c22c",
+        "instruction": "mov eax, [edx+308h]"
+      },
+      {
+        "addr": "59c232",
+        "instruction": "inc ecx; Increment by 1"
+      },
+      {
+        "addr": "59c233",
+        "instruction": "mov [edi+3Ch], eax"
+      },
+      {
+        "addr": "59c236",
+        "instruction": "mov eax, ebx"
+      },
+      {
+        "addr": "59c238",
+        "instruction": "mov [esp+90h+var_70], ecx"
+      },
+      {
+        "addr": "59c23c",
+        "instruction": "mov ecx, [esi]"
+      },
+      {
+        "addr": "59c23e",
+        "instruction": "mov edi, [eax+4]"
+      },
+      {
+        "addr": "59c241",
+        "instruction": "add ebx, 8; Add"
+      },
+      {
+        "addr": "59c244",
+        "instruction": "inc ecx; Increment by 1"
+      },
+      {
+        "addr": "59c245",
+        "instruction": "mov [esp+58h], edi"
+      },
+      {
+        "addr": "59c249",
+        "instruction": "mov edi, [esi+4]"
+      },
+      {
+        "addr": "59c24c",
+        "instruction": "mov edx, ecx"
+      },
+      {
+        "addr": "59c24e",
+        "instruction": "shr edx, 1; Shift Logical Right"
+      },
+      {
+        "addr": "59c250",
+        "instruction": "cmp ecx, edi; Compare Two Operands"
+      },
+      {
+        "addr": "59c252",
+        "instruction": "mov dword ptr [esp+90h+var_30], eax"
+      },
+      {
+        "addr": "59c256",
+        "instruction": "mov dword ptr [esp+90h+var_50], ebx"
+      },
+      {
+        "addr": "59c25a",
+        "instruction": "jnb short loc_59C2A2; Jump if Not Below (CF=0)",
+        "refs": [
+          {
+            "addr": "0x59c2a2",
+            "name": "loc_59C2A2"
+          }
+        ]
+      },
+      {
+        "addr": "59c25c",
+        "instruction": "cmp ecx, 1; Compare Two Operands"
+      },
+      {
+        "addr": "59c25f",
+        "instruction": "jbe short loc_59C285; Jump if Below or Equal (CF=1 | ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c285",
+            "name": "loc_59C285"
+          }
+        ]
+      },
+      {
+        "addr": "59c261",
+        "instruction": "mov edi, [esi+8]",
+        "label": "loc_59C261"
+      },
+      {
+        "addr": "59c264",
+        "instruction": "mov ebx, [edi+edx*4]"
+      },
+      {
+        "addr": "59c267",
+        "instruction": "fld dword ptr [ebx+4]; Load Real"
+      },
+      {
+        "addr": "59c26a",
+        "instruction": "fcomp dword ptr [esp+58h]; Compare Real and Pop"
+      },
+      {
+        "addr": "59c26e",
+        "instruction": "fnstsw ax; Store Status Word (no wait)"
+      },
+      {
+        "addr": "59c270",
+        "instruction": "test ah, 41h; Logical Compare"
+      },
+      {
+        "addr": "59c273",
+        "instruction": "jnz short loc_59C281; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c281",
+            "name": "loc_59C281"
+          }
+        ]
+      },
+      {
+        "addr": "59c275",
+        "instruction": "mov [edi+ecx*4], ebx"
+      },
+      {
+        "addr": "59c278",
+        "instruction": "mov ecx, edx"
+      },
+      {
+        "addr": "59c27a",
+        "instruction": "shr edx, 1; Shift Logical Right"
+      },
+      {
+        "addr": "59c27c",
+        "instruction": "cmp ecx, 1; Compare Two Operands"
+      },
+      {
+        "addr": "59c27f",
+        "instruction": "ja short loc_59C261; Jump if Above (CF=0 & ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c261",
+            "name": "loc_59C261"
+          }
+        ]
+      },
+      {
+        "addr": "59c281",
+        "instruction": "mov eax, dword ptr [esp+90h+var_30]",
+        "label": "loc_59C281"
+      },
+      {
+        "addr": "59c285",
+        "instruction": "mov edx, [esi+8]",
+        "label": "loc_59C285"
+      },
+      {
+        "addr": "59c288",
+        "instruction": "mov [edx+ecx*4], eax"
+      },
+      {
+        "addr": "59c28b",
+        "instruction": "mov edx, [esi]"
+      },
+      {
+        "addr": "59c28d",
+        "instruction": "mov ecx, [esi+0Ch]"
+      },
+      {
+        "addr": "59c290",
+        "instruction": "inc edx; Increment by 1"
+      },
+      {
+        "addr": "59c291",
+        "instruction": "cmp eax, ecx; Compare Two Operands"
+      },
+      {
+        "addr": "59c293",
+        "instruction": "mov [esi], edx"
+      },
+      {
+        "addr": "59c295",
+        "instruction": "jbe short loc_59C29A; Jump if Below or Equal (CF=1 | ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c29a",
+            "name": "loc_59C29A"
+          }
+        ]
+      },
+      {
+        "addr": "59c297",
+        "instruction": "mov [esi+0Ch], eax"
+      },
+      {
+        "addr": "59c29a",
+        "instruction": "cmp eax, [esi+10h]; Compare Two Operands",
+        "label": "loc_59C29A"
+      },
+      {
+        "addr": "59c29d",
+        "instruction": "jnb short loc_59C2A2; Jump if Not Below (CF=0)",
+        "refs": [
+          {
+            "addr": "0x59c2a2",
+            "name": "loc_59C2A2"
+          }
+        ]
+      },
+      {
+        "addr": "59c29f",
+        "instruction": "mov [esi+10h], eax"
+      },
+      {
+        "addr": "59c2a2",
+        "instruction": "mov ebx, Width",
+        "label": "loc_59C2A2",
+        "refs": [
+          {
+            "addr": "0xabed04",
+            "name": "Width"
+          }
+        ]
+      },
+      {
+        "addr": "59c2a8",
+        "instruction": "mov eax, dword ptr [esp+90h+var_48]",
+        "label": "loc_59C2A8"
+      },
+      {
+        "addr": "59c2ac",
+        "instruction": "add eax, 2; Add"
+      },
+      {
+        "addr": "59c2af",
+        "instruction": "cmp eax, 8; Compare Two Operands"
+      },
+      {
+        "addr": "59c2b2",
+        "instruction": "mov dword ptr [esp+90h+var_48], eax"
+      },
+      {
+        "addr": "59c2b6",
+        "instruction": "jl loc_59C047; Jump if Less (SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59c047",
+            "name": "loc_59C047"
+          }
+        ]
+      },
+      {
+        "addr": "59c2bc",
+        "instruction": "mov ecx, offset dst__0",
+        "refs": [
+          {
+            "addr": "0xabdfb8",
+            "name": "dst__0"
+          }
+        ]
+      },
+      {
+        "addr": "59c2c1",
+        "instruction": "call sub_5980C0; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x5980c0",
+            "name": "sub_5980C0"
+          }
+        ]
+      },
+      {
+        "addr": "59c2c6",
+        "instruction": "fmul [ebp+arg14]; Multiply Real"
+      },
+      {
+        "addr": "59c2c9",
+        "instruction": "mov ecx, offset dst__0",
+        "refs": [
+          {
+            "addr": "0xabdfb8",
+            "name": "dst__0"
+          }
+        ]
+      },
+      {
+        "addr": "59c2ce",
+        "instruction": "fadd [esp+90h+var_28]; Add Real"
+      },
+      {
+        "addr": "59c2d2",
+        "instruction": "fstp [esp+90h+var_28]; Store Real and Pop"
+      },
+      {
+        "addr": "59c2d6",
+        "instruction": "call sub_5980C0; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x5980c0",
+            "name": "sub_5980C0"
+          }
+        ]
+      },
+      {
+        "addr": "59c2db",
+        "instruction": "fmul [ebp+arg14]; Multiply Real"
+      },
+      {
+        "addr": "59c2de",
+        "instruction": "mov ecx, [esp+90h+var_74]"
+      },
+      {
+        "addr": "59c2e2",
+        "instruction": "inc ecx; Increment by 1"
+      },
+      {
+        "addr": "59c2e3",
+        "instruction": "fadd [esp+90h+var_20]; Add Real"
+      },
+      {
+        "addr": "59c2e7",
+        "instruction": "mov [esp+90h+var_74], ecx"
+      },
+      {
+        "addr": "59c2eb",
+        "instruction": "mov ecx, [esi]"
+      },
+      {
+        "addr": "59c2ed",
+        "instruction": "test ecx, ecx; Logical Compare"
+      },
+      {
+        "addr": "59c2ef",
+        "instruction": "fstp [esp+90h+var_20]; Store Real and Pop"
+      },
+      {
+        "addr": "59c2f3",
+        "instruction": "jnz short loc_59C2F9; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c2f9",
+            "name": "loc_59C2F9"
+          }
+        ]
+      },
+      {
+        "addr": "59c2f5",
+        "instruction": "xor edi, edi; Logical Exclusive OR"
+      },
+      {
+        "addr": "59c2f7",
+        "instruction": "jmp short loc_59C31F; Jump",
+        "refs": [
+          {
+            "addr": "0x59c31f",
+            "name": "loc_59C31F"
+          }
+        ]
+      },
+      {
+        "addr": "59c2f9",
+        "instruction": "mov eax, [esi+8]",
+        "label": "loc_59C2F9"
+      },
+      {
+        "addr": "59c2fc",
+        "instruction": "push 1"
+      },
+      {
+        "addr": "59c2fe",
+        "instruction": "mov ecx, [eax+ecx*4]"
+      },
+      {
+        "addr": "59c301",
+        "instruction": "mov edi, [eax+4]"
+      },
+      {
+        "addr": "59c304",
+        "instruction": "mov [eax+4], ecx"
+      },
+      {
+        "addr": "59c307",
+        "instruction": "mov edx, [esi]"
+      },
+      {
+        "addr": "59c309",
+        "instruction": "mov eax, [esi+8]"
+      },
+      {
+        "addr": "59c30c",
+        "instruction": "mov dword ptr [eax+edx*4], 0"
+      },
+      {
+        "addr": "59c313",
+        "instruction": "mov ecx, [esi]"
+      },
+      {
+        "addr": "59c315",
+        "instruction": "dec ecx; Decrement by 1"
+      },
+      {
+        "addr": "59c316",
+        "instruction": "mov [esi], ecx"
+      },
+      {
+        "addr": "59c318",
+        "instruction": "mov ecx, esi"
+      },
+      {
+        "addr": "59c31a",
+        "instruction": "call sub_5AD870; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x5ad870",
+            "name": "sub_5AD870"
+          }
+        ]
+      },
+      {
+        "addr": "59c31f",
+        "instruction": "mov ecx, [esp+90h+var_74]",
+        "label": "loc_59C31F"
+      },
+      {
+        "addr": "59c323",
+        "instruction": "mov eax, [ebp+n400]"
+      },
+      {
+        "addr": "59c326",
+        "instruction": "cmp ecx, eax; Compare Two Operands"
+      },
+      {
+        "addr": "59c328",
+        "instruction": "mov [esp+90h+var_6C], edi"
+      },
+      {
+        "addr": "59c32c",
+        "instruction": "jl loc_59BFE2; Jump if Less (SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59bfe2",
+            "name": "loc_59BFE2"
+          }
+        ]
+      },
+      {
+        "addr": "59c332",
+        "instruction": "mov ecx, [esi]",
+        "label": "loc_59C332"
+      },
+      {
+        "addr": "59c334",
+        "instruction": "test ecx, ecx; Logical Compare"
+      },
+      {
+        "addr": "59c336",
+        "instruction": "jz loc_59C3FC; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c3fc",
+            "name": "loc_59C3FC"
+          }
+        ]
+      },
+      {
+        "addr": "59c33c",
+        "instruction": "mov eax, [esi+8]"
+      },
+      {
+        "addr": "59c33f",
+        "instruction": "push 1"
+      },
+      {
+        "addr": "59c341",
+        "instruction": "mov edx, [eax+ecx*4]"
+      },
+      {
+        "addr": "59c344",
+        "instruction": "mov edi, [eax+4]"
+      },
+      {
+        "addr": "59c347",
+        "instruction": "mov [eax+4], edx"
+      },
+      {
+        "addr": "59c34a",
+        "instruction": "mov eax, [esi]"
+      },
+      {
+        "addr": "59c34c",
+        "instruction": "mov ecx, [esi+8]"
+      },
+      {
+        "addr": "59c34f",
+        "instruction": "mov dword ptr [ecx+eax*4], 0"
+      },
+      {
+        "addr": "59c356",
+        "instruction": "mov edx, [esi]"
+      },
+      {
+        "addr": "59c358",
+        "instruction": "dec edx; Decrement by 1"
+      },
+      {
+        "addr": "59c359",
+        "instruction": "mov ecx, esi"
+      },
+      {
+        "addr": "59c35b",
+        "instruction": "mov [esi], edx"
+      },
+      {
+        "addr": "59c35d",
+        "instruction": "call sub_5AD870; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x5ad870",
+            "name": "sub_5AD870"
+          }
+        ]
+      },
+      {
+        "addr": "59c362",
+        "instruction": "test edi, edi; Logical Compare"
+      },
+      {
+        "addr": "59c364",
+        "instruction": "jz loc_59C3FC; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c3fc",
+            "name": "loc_59C3FC"
+          }
+        ]
+      },
+      {
+        "addr": "59c36a",
+        "instruction": "push edi",
+        "label": "loc_59C36A"
+      },
+      {
+        "addr": "59c36b",
+        "instruction": "mov ecx, offset MouseClass__Instance",
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59c370",
+        "instruction": "call MapClass__GetCellAt_MapCrd; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x5657a0",
+            "name": "MapClass::GetCellAt_MapCrd"
+          }
+        ]
+      },
+      {
+        "addr": "59c375",
+        "instruction": "mov ebx, eax"
+      },
+      {
+        "addr": "59c377",
+        "instruction": "mov ecx, dword_ABED10",
+        "refs": [
+          {
+            "addr": "0xabed10",
+            "name": "dword_ABED10"
+          }
+        ]
+      },
+      {
+        "addr": "59c37d",
+        "instruction": "movsx eax, word ptr [edi+2]; Move with Sign-Extend"
+      },
+      {
+        "addr": "59c381",
+        "instruction": "imul eax, dword_89C2DC; Signed Multiply",
+        "refs": [
+          {
+            "addr": "0x89c2dc",
+            "name": "dword_89C2DC"
+          }
+        ]
+      },
+      {
+        "addr": "59c388",
+        "instruction": "movsx edx, word ptr [edi]; Move with Sign-Extend"
+      },
+      {
+        "addr": "59c38b",
+        "instruction": "add eax, edx; Add"
+      },
+      {
+        "addr": "59c38d",
+        "instruction": "lea edi, [eax+eax*4]; Load Effective Address"
+      },
+      {
+        "addr": "59c390",
+        "instruction": "shl edi, 4; Shift Logical Left"
+      },
+      {
+        "addr": "59c393",
+        "instruction": "add edi, ecx; Add"
+      },
+      {
+        "addr": "59c395",
+        "instruction": "mov eax, [edi+38h]"
+      },
+      {
+        "addr": "59c398",
+        "instruction": "test eax, eax; Logical Compare"
+      },
+      {
+        "addr": "59c39a",
+        "instruction": "jnz short loc_59C3BB; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c3bb",
+            "name": "loc_59C3BB"
+          }
+        ]
+      },
+      {
+        "addr": "59c39c",
+        "instruction": "mov ecx, ebx"
+      },
+      {
+        "addr": "59c39e",
+        "instruction": "call sub_4865D0; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x4865d0",
+            "name": "sub_4865D0"
+          }
+        ]
+      },
+      {
+        "addr": "59c3a3",
+        "instruction": "test al, al; Logical Compare"
+      },
+      {
+        "addr": "59c3a5",
+        "instruction": "jz short loc_59C3BB; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c3bb",
+            "name": "loc_59C3BB"
+          }
+        ]
+      },
+      {
+        "addr": "59c3a7",
+        "instruction": "mov eax, [esp+90h+var_80]"
+      },
+      {
+        "addr": "59c3ab",
+        "instruction": "mov dword ptr [ebx+38h], 0"
+      },
+      {
+        "addr": "59c3b2",
+        "instruction": "mov ecx, [eax+308h]"
+      },
+      {
+        "addr": "59c3b8",
+        "instruction": "mov [edi+38h], ecx"
+      },
+      {
+        "addr": "59c3bb",
+        "instruction": "mov ecx, [esi]",
+        "label": "loc_59C3BB"
+      },
+      {
+        "addr": "59c3bd",
+        "instruction": "test ecx, ecx; Logical Compare"
+      },
+      {
+        "addr": "59c3bf",
+        "instruction": "jnz short loc_59C3C5; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c3c5",
+            "name": "loc_59C3C5"
+          }
+        ]
+      },
+      {
+        "addr": "59c3c1",
+        "instruction": "xor edi, edi; Logical Exclusive OR"
+      },
+      {
+        "addr": "59c3c3",
+        "instruction": "jmp short loc_59C3EB; Jump",
+        "refs": [
+          {
+            "addr": "0x59c3eb",
+            "name": "loc_59C3EB"
+          }
+        ]
+      },
+      {
+        "addr": "59c3c5",
+        "instruction": "mov eax, [esi+8]",
+        "label": "loc_59C3C5"
+      },
+      {
+        "addr": "59c3c8",
+        "instruction": "push 1"
+      },
+      {
+        "addr": "59c3ca",
+        "instruction": "mov edx, [eax+ecx*4]"
+      },
+      {
+        "addr": "59c3cd",
+        "instruction": "mov edi, [eax+4]"
+      },
+      {
+        "addr": "59c3d0",
+        "instruction": "mov [eax+4], edx"
+      },
+      {
+        "addr": "59c3d3",
+        "instruction": "mov eax, [esi]"
+      },
+      {
+        "addr": "59c3d5",
+        "instruction": "mov ecx, [esi+8]"
+      },
+      {
+        "addr": "59c3d8",
+        "instruction": "mov dword ptr [ecx+eax*4], 0"
+      },
+      {
+        "addr": "59c3df",
+        "instruction": "mov ecx, [esi]"
+      },
+      {
+        "addr": "59c3e1",
+        "instruction": "dec ecx; Decrement by 1"
+      },
+      {
+        "addr": "59c3e2",
+        "instruction": "mov [esi], ecx"
+      },
+      {
+        "addr": "59c3e4",
+        "instruction": "mov ecx, esi"
+      },
+      {
+        "addr": "59c3e6",
+        "instruction": "call sub_5AD870; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x5ad870",
+            "name": "sub_5AD870"
+          }
+        ]
+      },
+      {
+        "addr": "59c3eb",
+        "instruction": "mov ecx, [esp+90h+var_74]",
+        "label": "loc_59C3EB"
+      },
+      {
+        "addr": "59c3ef",
+        "instruction": "inc ecx; Increment by 1"
+      },
+      {
+        "addr": "59c3f0",
+        "instruction": "test edi, edi; Logical Compare"
+      },
+      {
+        "addr": "59c3f2",
+        "instruction": "mov [esp+90h+var_74], ecx"
+      },
+      {
+        "addr": "59c3f6",
+        "instruction": "jnz loc_59C36A; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c36a",
+            "name": "loc_59C36A"
+          }
+        ]
+      },
+      {
+        "addr": "59c3fc",
+        "instruction": "mov edx, [esp+90h+Block]",
+        "label": "loc_59C3FC"
+      },
+      {
+        "addr": "59c400",
+        "instruction": "mov ebx, [esp+90h+var_80]"
+      },
+      {
+        "addr": "59c404",
+        "instruction": "push edx; Block",
+        "comments": [
+          "Block"
+        ]
+      },
+      {
+        "addr": "59c405",
+        "instruction": "call ??3@YAXPAX@Z; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x7c8b3d",
+            "name": "??3@YAXPAX@Z"
+          }
+        ]
+      },
+      {
+        "addr": "59c40a",
+        "instruction": "xor edi, edi; Logical Exclusive OR"
+      },
+      {
+        "addr": "59c40c",
+        "instruction": "add esp, 4; Add"
+      },
+      {
+        "addr": "59c40f",
+        "instruction": "cmp esi, edi; Compare Two Operands"
+      },
+      {
+        "addr": "59c411",
+        "instruction": "jz short loc_59C425; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c425",
+            "name": "loc_59C425"
+          }
+        ]
+      },
+      {
+        "addr": "59c413",
+        "instruction": "mov eax, [esi+8]"
+      },
+      {
+        "addr": "59c416",
+        "instruction": "push eax; Block",
+        "comments": [
+          "Block"
+        ]
+      },
+      {
+        "addr": "59c417",
+        "instruction": "call ??3@YAXPAX@Z; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x7c8b3d",
+            "name": "??3@YAXPAX@Z"
+          }
+        ]
+      },
+      {
+        "addr": "59c41c",
+        "instruction": "push esi; Block",
+        "comments": [
+          "Block"
+        ]
+      },
+      {
+        "addr": "59c41d",
+        "instruction": "call ??3@YAXPAX@Z; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x7c8b3d",
+            "name": "??3@YAXPAX@Z"
+          }
+        ]
+      },
+      {
+        "addr": "59c422",
+        "instruction": "add esp, 8; Add"
+      },
+      {
+        "addr": "59c425",
+        "instruction": "mov ecx, [ebx+308h]",
+        "label": "loc_59C425"
+      },
+      {
+        "addr": "59c42b",
+        "instruction": "push 1"
+      },
+      {
+        "addr": "59c42d",
+        "instruction": "push ecx"
+      },
+      {
+        "addr": "59c42e",
+        "instruction": "mov ecx, offset MouseClass__Instance",
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59c433",
+        "instruction": "call sub_57A0C0; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x57a0c0",
+            "name": "sub_57A0C0"
+          }
+        ]
+      },
+      {
+        "addr": "59c438",
+        "instruction": "mov ecx, offset MouseClass__Instance",
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59c43d",
+        "instruction": "mov [esp+90h+var_81], al"
+      },
+      {
+        "addr": "59c441",
+        "instruction": "call sub_578350; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x578350",
+            "name": "sub_578350"
+          }
+        ]
+      },
+      {
+        "addr": "59c446",
+        "instruction": "mov ecx, offset MouseClass__Instance; this",
+        "comments": [
+          "this"
+        ],
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59c44b",
+        "instruction": "call MapClass__CellIteratorNext; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x578290",
+            "name": "MapClass::CellIteratorNext"
+          }
+        ]
+      },
+      {
+        "addr": "59c450",
+        "instruction": "cmp eax, edi; Compare Two Operands"
+      },
+      {
+        "addr": "59c452",
+        "instruction": "jz short loc_59C480; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c480",
+            "name": "loc_59C480"
+          }
+        ]
+      },
+      {
+        "addr": "59c454",
+        "instruction": "mov ecx, [eax+38h]",
+        "label": "loc_59C454"
+      },
+      {
+        "addr": "59c457",
+        "instruction": "mov edx, IsoTileTypeIndex_1",
+        "refs": [
+          {
+            "addr": "0xabad28",
+            "name": "IsoTileTypeIndex_1"
+          }
+        ]
+      },
+      {
+        "addr": "59c45d",
+        "instruction": "cmp ecx, edx; Compare Two Operands"
+      },
+      {
+        "addr": "59c45f",
+        "instruction": "jl short loc_59C472; Jump if Less (SF!=OF)",
+        "refs": [
+          {
+            "addr": "0x59c472",
+            "name": "loc_59C472"
+          }
+        ]
+      },
+      {
+        "addr": "59c461",
+        "instruction": "add edx, 2Ah ; '*'; Add"
+      },
+      {
+        "addr": "59c464",
+        "instruction": "cmp ecx, edx; Compare Two Operands"
+      },
+      {
+        "addr": "59c466",
+        "instruction": "jge short loc_59C472; Jump if Greater or Equal (SF=OF)",
+        "refs": [
+          {
+            "addr": "0x59c472",
+            "name": "loc_59C472"
+          }
+        ]
+      },
+      {
+        "addr": "59c468",
+        "instruction": "mov [eax+38h], edi"
+      },
+      {
+        "addr": "59c46b",
+        "instruction": "mov byte ptr [eax+11Ah], 0"
+      },
+      {
+        "addr": "59c472",
+        "instruction": "mov ecx, offset MouseClass__Instance; this",
+        "label": "loc_59C472",
+        "comments": [
+          "this"
+        ],
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59c477",
+        "instruction": "call MapClass__CellIteratorNext; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x578290",
+            "name": "MapClass::CellIteratorNext"
+          }
+        ]
+      },
+      {
+        "addr": "59c47c",
+        "instruction": "cmp eax, edi; Compare Two Operands"
+      },
+      {
+        "addr": "59c47e",
+        "instruction": "jnz short loc_59C454; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c454",
+            "name": "loc_59C454"
+          }
+        ]
+      },
+      {
+        "addr": "59c480",
+        "instruction": "mov al, [esp+90h+var_81]",
+        "label": "loc_59C480"
+      },
+      {
+        "addr": "59c484",
+        "instruction": "test al, al; Logical Compare"
+      },
+      {
+        "addr": "59c486",
+        "instruction": "jnz loc_59C515; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c515",
+            "name": "loc_59C515"
+          }
+        ]
+      },
+      {
+        "addr": "59c48c",
+        "instruction": "mov esi, nIdx",
+        "refs": [
+          {
+            "addr": "0xaa0738",
+            "name": "nIdx"
+          }
+        ]
+      },
+      {
+        "addr": "59c492",
+        "instruction": "mov edi, [ebx+308h]"
+      },
+      {
+        "addr": "59c498",
+        "instruction": "mov ecx, offset MouseClass__Instance",
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59c49d",
+        "instruction": "call sub_578350; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x578350",
+            "name": "sub_578350"
+          }
+        ]
+      },
+      {
+        "addr": "59c4a2",
+        "instruction": "mov ecx, offset MouseClass__Instance; this",
+        "comments": [
+          "this"
+        ],
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59c4a7",
+        "instruction": "call MapClass__CellIteratorNext; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x578290",
+            "name": "MapClass::CellIteratorNext"
+          }
+        ]
+      },
+      {
+        "addr": "59c4ac",
+        "instruction": "test eax, eax; Logical Compare"
+      },
+      {
+        "addr": "59c4ae",
+        "instruction": "jz short loc_59C50A; Jump if Zero (ZF=1)",
+        "refs": [
+          {
+            "addr": "0x59c50a",
+            "name": "loc_59C50A"
+          }
+        ]
+      },
+      {
+        "addr": "59c4b0",
+        "instruction": "mov edx, [eax+24h]",
+        "label": "loc_59C4B0"
+      },
+      {
+        "addr": "59c4b3",
+        "instruction": "mov dword ptr [esp+90h+var_30], edx"
+      },
+      {
+        "addr": "59c4b7",
+        "instruction": "movsx ecx, word ptr [esp+90h+var_30+2]; Move with Sign-Extend"
+      },
+      {
+        "addr": "59c4bc",
+        "instruction": "imul ecx, dword_89C2DC; Signed Multiply",
+        "refs": [
+          {
+            "addr": "0x89c2dc",
+            "name": "dword_89C2DC"
+          }
+        ]
+      },
+      {
+        "addr": "59c4c3",
+        "instruction": "movsx edx, dx; Move with Sign-Extend"
+      },
+      {
+        "addr": "59c4c6",
+        "instruction": "add ecx, edx; Add"
+      },
+      {
+        "addr": "59c4c8",
+        "instruction": "mov edx, dword_ABED10",
+        "refs": [
+          {
+            "addr": "0xabed10",
+            "name": "dword_ABED10"
+          }
+        ]
+      },
+      {
+        "addr": "59c4ce",
+        "instruction": "lea ecx, [ecx+ecx*4]; Load Effective Address"
+      },
+      {
+        "addr": "59c4d1",
+        "instruction": "shl ecx, 4; Shift Logical Left"
+      },
+      {
+        "addr": "59c4d4",
+        "instruction": "add ecx, edx; Add"
+      },
+      {
+        "addr": "59c4d6",
+        "instruction": "cmp [ecx+38h], edi; Compare Two Operands"
+      },
+      {
+        "addr": "59c4d9",
+        "instruction": "jnz short loc_59C4FC; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c4fc",
+            "name": "loc_59C4FC"
+          }
+        ]
+      },
+      {
+        "addr": "59c4db",
+        "instruction": "mov dword ptr [ecx+38h], 0"
+      },
+      {
+        "addr": "59c4e2",
+        "instruction": "mov byte ptr [ecx+4Bh], 0"
+      },
+      {
+        "addr": "59c4e6",
+        "instruction": "mov [eax+38h], esi"
+      },
+      {
+        "addr": "59c4e9",
+        "instruction": "mov byte ptr [eax+11Ah], 0"
+      },
+      {
+        "addr": "59c4f0",
+        "instruction": "mov ecx, [ebx+30Ch]"
+      },
+      {
+        "addr": "59c4f6",
+        "instruction": "mov [eax+11Bh], cl"
+      },
+      {
+        "addr": "59c4fc",
+        "instruction": "mov ecx, offset MouseClass__Instance; this",
+        "label": "loc_59C4FC",
+        "comments": [
+          "this"
+        ],
+        "refs": [
+          {
+            "addr": "0x87f7e8",
+            "name": "MouseClass::Instance"
+          }
+        ]
+      },
+      {
+        "addr": "59c501",
+        "instruction": "call MapClass__CellIteratorNext; Call Procedure",
+        "refs": [
+          {
+            "addr": "0x578290",
+            "name": "MapClass::CellIteratorNext"
+          }
+        ]
+      },
+      {
+        "addr": "59c506",
+        "instruction": "test eax, eax; Logical Compare"
+      },
+      {
+        "addr": "59c508",
+        "instruction": "jnz short loc_59C4B0; Jump if Not Zero (ZF=0)",
+        "refs": [
+          {
+            "addr": "0x59c4b0",
+            "name": "loc_59C4B0"
+          }
+        ]
+      },
+      {
+        "addr": "59c50a",
+        "instruction": "xor eax, eax; Logical Exclusive OR",
+        "label": "loc_59C50A"
+      },
+      {
+        "addr": "59c50c",
+        "instruction": "pop edi"
+      },
+      {
+        "addr": "59c50d",
+        "instruction": "pop esi"
+      },
+      {
+        "addr": "59c50e",
+        "instruction": "pop ebx"
+      },
+      {
+        "addr": "59c50f",
+        "instruction": "mov esp, ebp"
+      },
+      {
+        "addr": "59c511",
+        "instruction": "pop ebp"
+      },
+      {
+        "addr": "59c512",
+        "instruction": "retn 20h ; ' '; Return Near from Procedure"
+      },
+      {
+        "addr": "59c515",
+        "instruction": "mov ecx, [ebx+308h]",
+        "label": "loc_59C515"
+      },
+      {
+        "addr": "59c51b",
+        "instruction": "mov eax, [esp+90h+var_74]"
+      },
+      {
+        "addr": "59c51f",
+        "instruction": "inc ecx; Increment by 1"
+      },
+      {
+        "addr": "59c520",
+        "instruction": "pop edi"
+      },
+      {
+        "addr": "59c521",
+        "instruction": "mov [ebx+308h], ecx"
+      },
+      {
+        "addr": "59c527",
+        "instruction": "pop esi"
+      },
+      {
+        "addr": "59c528",
+        "instruction": "pop ebx"
+      },
+      {
+        "addr": "59c529",
+        "instruction": "mov esp, ebp"
+      },
+      {
+        "addr": "59c52b",
+        "instruction": "pop ebp"
+      },
+      {
+        "addr": "59c52c",
+        "instruction": "retn 20h ; ' '; Return Near from Procedure"
+      }
+    ],
+    "stack_frame": [
+      {
+        "name": "var_98",
+        "offset": "0x0",
+        "size": "0x8",
+        "type": "double"
+      },
+      {
+        "name": "var_81",
+        "offset": "0x17",
+        "size": "0x1",
+        "type": "_BYTE"
+      },
+      {
+        "name": "var_80",
+        "offset": "0x18",
+        "size": "0x4",
+        "type": "_DWORD"
+      },
+      {
+        "name": "var_7C",
+        "offset": "0x1c",
+        "size": "0x4",
+        "type": "_DWORD"
+      },
+      {
+        "name": "pMapCoord",
+        "offset": "0x20",
+        "size": "0x4",
+        "type": "int"
+      },
+      {
+        "name": "var_74",
+        "offset": "0x24",
+        "size": "0x4",
+        "type": "_DWORD"
+      },
+      {
+        "name": "var_70",
+        "offset": "0x28",
+        "size": "0x4",
+        "type": "_DWORD"
+      },
+      {
+        "name": "var_6C",
+        "offset": "0x2c",
+        "size": "0x4",
+        "type": "_DWORD"
+      },
+      {
+        "name": "Block",
+        "offset": "0x30",
+        "size": "0x4",
+        "type": "void *"
+      },
+      {
+        "name": "var_64",
+        "offset": "0x34",
+        "size": "0x4",
+        "type": "float"
+      },
+      {
+        "name": "var_60",
+        "offset": "0x38",
+        "size": "0x4",
+        "type": "float"
+      },
+      {
+        "name": "var_5C",
+        "offset": "0x3c",
+        "size": "0x4",
+        "type": "_DWORD"
+      },
+      {
+        "name": "var_58",
+        "offset": "0x40",
+        "size": "0x4",
+        "type": "_DWORD"
+      },
+      {
+        "name": "var_54",
+        "offset": "0x44",
+        "size": "0x4",
+        "type": "_DWORD"
+      },
+      {
+        "name": "var_50",
+        "offset": "0x48",
+        "size": "0x8",
+        "type": "_QWORD"
+      },
+      {
+        "name": "var_48",
+        "offset": "0x50",
+        "size": "0x8",
+        "type": "_QWORD"
+      },
+      {
+        "name": "var_40",
+        "offset": "0x58",
+        "size": "0x4",
+        "type": "int"
+      },
+      {
+        "name": "var_36",
+        "offset": "0x62",
+        "size": "0x4",
+        "type": "_DWORD"
+      },
+      {
+        "name": "var_30",
+        "offset": "0x68",
+        "size": "0x8",
+        "type": "double"
+      },
+      {
+        "name": "var_28",
+        "offset": "0x70",
+        "size": "0x8",
+        "type": "_QWORD"
+      },
+      {
+        "name": "var_20",
+        "offset": "0x78",
+        "size": "0x8",
+        "type": "_QWORD"
+      },
+      {
+        "name": "var_18",
+        "offset": "0x80",
+        "size": "0x8",
+        "type": "double"
+      },
+      {
+        "name": "var_10",
+        "offset": "0x88",
+        "size": "0x8",
+        "type": "double"
+      },
+      {
+        "name": "var_8",
+        "offset": "0x90",
+        "size": "0x8",
+        "type": "double"
+      },
+      {
+        "name": "__saved_registers",
+        "offset": "0x98",
+        "size": "0x4",
+        "type": "_DWORD"
+      },
+      {
+        "name": "__return_address",
+        "offset": "0x9c",
+        "size": "0x4",
+        "type": "_UNKNOWN *"
+      },
+      {
+        "name": "n400",
+        "offset": "0xa0",
+        "size": "0x4",
+        "type": "int"
+      },
+      {
+        "name": "arg4",
+        "offset": "0xa4",
+        "size": "0x4",
+        "type": "_DWORD *"
+      },
+      {
+        "name": "p_n2",
+        "offset": "0xa8",
+        "size": "0x4",
+        "type": "int"
+      },
+      {
+        "name": "argC",
+        "offset": "0xac",
+        "size": "0x4",
+        "type": "int"
+      },
+      {
+        "name": "p_MapCoords",
+        "offset": "0xb0",
+        "size": "0x4",
+        "type": "int"
+      },
+      {
+        "name": "arg14",
+        "offset": "0xb4",
+        "size": "0x8",
+        "type": "double"
+      },
+      {
+        "name": "arg1C",
+        "offset": "0xbc",
+        "size": "0x1",
+        "type": "char"
+      }
+    ],
+    "return_type": "int",
+    "arguments": [
+      {
+        "name": "this",
+        "type": "int *"
+      },
+      {
+        "name": "n400_1",
+        "type": "int"
+      },
+      {
+        "name": "arg2",
+        "type": "_DWORD *"
+      },
+      {
+        "name": "p_n2",
+        "type": "int"
+      },
+      {
+        "name": "arg4",
+        "type": "int"
+      },
+      {
+        "name": "p_MapCoords",
+        "type": "int"
+      },
+      {
+        "name": "arg6",
+        "type": "double"
+      },
+      {
+        "name": "arg7",
+        "type": "char"
+      }
+    ]
+  },
+  "instruction_count": 696,
+  "total_instructions": null,
+  "cursor": {
+    "done": true
+  }
+}

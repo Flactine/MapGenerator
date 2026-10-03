@@ -276,19 +276,9 @@ void RandomMapGenerator::ComputeRadarImage()
     radarImage_ = image;
 
     // ---- write the PNG into the output folder ------------------------------
-    // Same folder as the ".map": <工程根>\Mapoutput, i.e. two levels up from
-    // the executable (x64\Debug\ / x64\Release\).
-    wchar_t wdir[MAX_PATH];
-    GetModuleFileNameW(nullptr, wdir, MAX_PATH);
-    wchar_t* slash = wcsrchr(wdir, L'\\');
-    if (slash)
-        slash[1] = L'\0';
-
-    wchar_t wdirOut[MAX_PATH];
-    swprintf_s(wdirOut, L"%s..\\..\\Mapoutput\\", wdir);
-    CreateDirectoryW(wdirOut, nullptr);   // 已存在时返回失败，忽略
-
-    wchar_t wpath[MAX_PATH];
-    swprintf_s(wpath, L"%s..\\..\\Mapoutput\\radar_preview.png", wdir);
-    SaveRadarPng(radarImage_, wpath);
+    // 和成品地图同一个目录：界面选定的输出文件夹，默认 exe 所在文件夹
+    //（outputDir_ 已带结尾反斜杠，SetOutputDir 时建过目录，这里再兜一次底）。
+    CreateDirectoryW(outputDir_.c_str(), nullptr);   // 已存在时失败，忽略
+    const std::wstring wpath = outputDir_ + L"radar_preview.png";
+    SaveRadarPng(radarImage_, wpath.c_str());
 }

@@ -1245,6 +1245,12 @@ public:
     // and for how each part was verified against a shipped map.
     bool SaveMapFile(const wchar_t* path);
 
+    // 产物输出目录：.map/.yrm、radar_preview.png 和 rmg_diag.log 全部写这里。
+    // 内部始终保存成"带结尾反斜杠的绝对路径"；默认是 exe 所在文件夹，界面上
+    // 的"浏览…"按钮可以让使用者改成任意文件夹。生成开始前调用一次即可。
+    void SetOutputDir(const std::wstring& dir);
+    const std::wstring& GetOutputDir() const;
+
     // [port-only diagnostic] Write a FA2-readable ".map" snapshot of the map in
     // its current state to Mapoutput, named "<YYYYMMDD_HHMMSS>_<stageName>.map".
     // Call it right after a pipeline step to diff that step in the editor; the
@@ -2171,6 +2177,15 @@ private:
                             // dst_, so this roll never consumes generation
                             // RNG). A roll of 0 keeps LandType 3/4 all-land
                             // (sub_59C580 skipped, same as vanilla).
+    // ---- 输出目录 -----------------------------------------------------------
+    // 成品地图（.map/.yrm）和雷达图 radar_preview.png 的落盘位置，保存为带
+    // 结尾反斜杠的绝对路径。构造时默认 = exe 所在文件夹，SetOutputDir 可改。
+    std::wstring outputDir_;
+    // DiagLog 是静态方法，访问不到 this->outputDir_，目录在这里另存一份静态
+    // 拷贝，SetOutputDir 时同步。进程里还没调用过 SetOutputDir 时它为空，
+    // DiagLog 就回退到 exe 所在文件夹。
+    static std::wstring s_diagDir_;
+
     // ---- theater tile-family indices (IsometricTileTypeClass::ReadINI) ----
     // All of these come from [General] keys of the theater INI; LoadTheaterTiles
     // turns each key (a TileSet SECTION NUMBER) into the running tile count at

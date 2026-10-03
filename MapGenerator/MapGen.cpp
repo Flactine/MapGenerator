@@ -12,32 +12,32 @@
 #include <strsafe.h>
 
 // ============================================================================
-// [TEMP DIAG] DiagLog - append one ASCII line to Mapoutput\rmg_diag.log.
-// First call in the process truncates the file; GenerateMapBody also prints a
-// banner so several GUI runs in one process stay separable.
+// [TEMP DIAG] DiagLog - append one ASCII line to <输出目录>\rmg_diag.log.
+// 输出目录跟随界面选择（默认 exe 所在文件夹）；进程里还没生成过对象时静态
+// 目录为空，回退到 exe 所在文件夹。First call in the process truncates the
+// file; GenerateMapBody also prints a banner so several GUI runs in one
+// process stay separable.
 // ============================================================================
 void RandomMapGenerator::DiagLog(const char* fmt, ...)
 {
-    wchar_t path[MAX_PATH] = {};
-    if (GetModuleFileNameW(nullptr, path, MAX_PATH) == 0)
+    // 先取 exe 所在文件夹，作为静态目录为空时的回退。
+    wchar_t exeDir[MAX_PATH] = {};
+    if (GetModuleFileNameW(nullptr, exeDir, MAX_PATH) == 0)
         return;
-    wchar_t* slash = wcsrchr(path, L'\\');
+    wchar_t* slash = wcsrchr(exeDir, L'\\');
     if (slash == nullptr)
         return;
-    static const wchar_t kRel[] = L"..\\..\\Mapoutput\\rmg_diag.log";
-    if ((slash - path) + 1 + static_cast<int>(wcslen(kRel)) >= MAX_PATH)
-        return;
-    wcscpy_s(slash + 1, MAX_PATH - static_cast<int>(slash + 1 - path), kRel);
+    slash[1] = L'\0';
 
-    // Make sure Mapoutput exists (the UI creates it too, but be independent).
-    wchar_t dir[MAX_PATH] = {};
-    StringCchCopyW(dir, MAX_PATH, path);
-    wchar_t* dslash = wcsrchr(dir, L'\\');
-    if (dslash)
-    {
-        *dslash = 0;
-        CreateDirectoryW(dir, nullptr);
-    }
+    const std::wstring dir =
+        s_diagDir_.empty() ? std::wstring(exeDir) : s_diagDir_;
+    CreateDirectoryW(dir.c_str(), nullptr);   // 已存在时失败，忽略
+
+    wchar_t path[MAX_PATH] = {};
+    if (dir.size() >= MAX_PATH - 16)
+        return;
+    wcscpy_s(path, MAX_PATH, dir.c_str());
+    wcscat_s(path, MAX_PATH, L"rmg_diag.log");
 
     static bool first = true;
     FILE* fp = nullptr;
@@ -354,6 +354,40 @@ RandomMapGenerator::RandomMapGenerator()
     progressSink_ = nullptr;
     progressContext_ = nullptr;
     progressPercent_ = 0;
+
+    // 默认输出目录 = exe 所在文件夹（带结尾反斜杠）。界面不改的话，地图、
+    // 雷达图和诊断日志就直接落在 exe 旁边。
+    {
+        wchar_t modPath[MAX_PATH] = {};
+        if (GetModuleFileNameW(nullptr, modPath, MAX_PATH) != 0)
+        {
+            wchar_t* slash = wcsrchr(modPath, L'\\');
+            if (slash != nullptr)
+            {
+                slash[1] = L'\0';
+                outputDir_ = modPath;
+                s_diagDir_ = outputDir_;
+            }
+        }
+    }
+}
+
+// 静态成员的实体定义（声明在 MapGen.h）。
+std::wstring RandomMapGenerator::s_diagDir_;
+
+// 界面选定输出文件夹后、开始生成前调用：规整成带结尾反斜杠的绝对路径，
+// 目录不存在顺手建出来，并同步给静态 DiagLog。
+void RandomMapGenerator::SetOutputDir(const std::wstring& dir)
+{
+    outputDir_ = dir;
+    if (!outputDir_.empty())
+    {
+        const wchar_t last = outputDir_[outputDir_.size() - 1];
+        if (last != L'\\' && last != L'/')
+            outputDir_.push_back(L'\\');
+        CreateDirectoryW(outputDir_.c_str(), nullptr);   // 已存在会失败，忽略
+    }
+    s_diagDir_ = outputDir_;
 }
 
 RandomMapGenerator::~RandomMapGenerator()

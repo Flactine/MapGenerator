@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include <windows.h> // 需要包含 Win32 API 头文件
 #include <commctrl.h> // 进度条控件（PROGRESS_CLASS）
+#include <shlobj.h>  // SHBrowseForFolder 选择输出文件夹
 #include <strsafe.h>
 #include "MapGen.h"
 #include <cstring>  // memcpy
@@ -9,11 +10,16 @@
 #pragma comment(lib, "gdi32.lib")
 // 进度条控件在comctl32.lib
 #pragma comment(lib, "comctl32.lib")
+// SHBrowseForFolder / SHGetPathFromIDList 在 shell32，CoTaskMemFree / CoInitializeEx 在 ole32
+#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "ole32.lib")
 
 // 控件ID
 #define ID_GENERATE_BTN 101
 #define ID_CLEAR_BTN    102
 #define ID_PROGRESS_BAR 120
+#define ID_OUTDIR_EDIT  121   // 输出目录显示框（只读，显示当前输出文件夹）
+#define ID_BROWSE_BTN   122   // "浏览…"按钮：弹文件夹选择对话框
 
 #define ID_ENV_COMBO     110
 #define ID_TIME_COMBO    111
@@ -245,8 +251,9 @@ static const wchar_t* LandTypeStr(LandType lt)
     }
 }
 
-// 取得地图输出目录（exe 在 x64\Debug\ 下，上退两级到工程根的 Mapoutput）
-static void GetMapOutputDir(wchar_t* dir, size_t dirCch)
+// 取得 exe 所在文件夹（带结尾反斜杠）。这也是输出目录的默认值：地图、雷达图
+// 和日志默认直接落在 exe 旁边。
+static void GetExeDir(wchar_t* dir, size_t dirCch)
 {
     wchar_t exePath[MAX_PATH] = {};
     GetModuleFileNameW(nullptr, exePath, MAX_PATH);
@@ -255,7 +262,57 @@ static void GetMapOutputDir(wchar_t* dir, size_t dirCch)
         *(slash + 1) = 0;
     else
         exePath[0] = 0;
-    StringCchPrintfW(dir, dirCch, L"%s..\\..\\Mapoutput\\", exePath);
+    StringCchCopyW(dir, dirCch, exePath);
+}
+
+// 读取界面上当前选定的输出目录：直接取输出目录框里的路径并补上结尾反斜杠；
+// 万一框是空的，回退到 exe 所在文件夹。
+static void GetChosenOutputDir(HWND hWnd, wchar_t* dir, size_t dirCch)
+{
+    wchar_t buf[MAX_PATH] = {};
+    GetDlgItemTextW(hWnd, ID_OUTDIR_EDIT, buf, ARRAYSIZE(buf));
+    if (buf[0] == 0)
+    {
+        GetExeDir(dir, dirCch);
+        return;
+    }
+    StringCchCopyW(dir, dirCch, buf);
+    const size_t len = wcslen(dir);
+    if (len > 0 && dir[len - 1] != L'\\' && dir[len - 1] != L'/')
+        StringCchCatW(dir, dirCch, L"\\");
+}
+
+// 文件夹选择对话框刚弹出来时，把定位点设成当前输出目录，省得每次从根目录翻。
+// BFFCALLBACK 的签名是 (HWND, UINT, LPARAM, LPARAM)，第三个参数本回调不用。
+static int CALLBACK BrowseFolderCallback(HWND dlg, UINT msg,
+                                         LPARAM /*lp*/, LPARAM lpData)
+{
+    if (msg == BFFM_INITIALIZED)
+        SendMessageW(dlg, BFFM_SETSELECTIONW, TRUE, lpData);
+    return 0;
+}
+
+// "浏览…"按钮：弹系统自带的"选择文件夹"对话框，选中后把路径填进输出目录框。
+static void OnBrowseOutputDir(HWND hWnd)
+{
+    wchar_t current[MAX_PATH] = {};
+    GetDlgItemTextW(hWnd, ID_OUTDIR_EDIT, current, ARRAYSIZE(current));
+
+    BROWSEINFOW bi = {};
+    bi.hwndOwner = hWnd;
+    bi.lpszTitle = L"选择地图输出文件夹";
+    bi.ulFlags   = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+    bi.lpfn      = BrowseFolderCallback;
+    bi.lParam    = reinterpret_cast<LPARAM>(current);
+
+    PIDLIST_ABSOLUTE pidl = SHBrowseForFolderW(&bi);
+    if (pidl != nullptr)
+    {
+        wchar_t path[MAX_PATH] = {};
+        if (SHGetPathFromIDListW(pidl, path))
+            SetDlgItemTextW(hWnd, ID_OUTDIR_EDIT, path);
+        CoTaskMemFree(pidl);
+    }
 }
 
 // 删除指定目录里符合通配符的所有文件（不进子目录），返回成功删除的个数
@@ -283,19 +340,21 @@ static int DeleteFilesByPattern(const wchar_t* dir, const wchar_t* pattern)
     return removed;
 }
 
-// "清除"按钮：确认后删掉 Mapoutput 下所有 .map / .yrm 和 .isopack5(.txt) 文件。
-// 雷达图 radar_preview.png、seed_history.txt、rmg_diag.log 不在删除范围内。
+// "清除输出"按钮：确认后删掉当前输出文件夹下所有 .map / .yrm 和
+// .isopack5(.txt) 文件。雷达图 radar_preview.png、seed_history.txt、
+// rmg_diag.log 不在删除范围内。
 static void OnClearOutputs(HWND hWnd)
 {
+    wchar_t dir[MAX_PATH];
+    GetChosenOutputDir(hWnd, dir, ARRAYSIZE(dir));
+
     const int answer = MessageBoxW(hWnd,
-        L"确定要删除 Mapoutput 目录下所有 .map/.yrm 地图文件和 .isopack5 阶段快照吗？\n\n"
+        L"确定要删除所选输出文件夹下所有 .map/.yrm 地图文件和 .isopack5 阶段快照吗？\n\n"
         L"雷达图、种子记录、日志不会被删。",
         L"确认清除", MB_YESNO | MB_ICONQUESTION);
     if (answer != IDYES)
         return;
 
-    wchar_t dir[MAX_PATH];
-    GetMapOutputDir(dir, ARRAYSIZE(dir));
     CreateDirectoryW(dir, nullptr);          // 目录不存在就建，删 0 个也无妨
 
     const int maps   = DeleteFilesByPattern(dir, L"*.map")
@@ -310,7 +369,7 @@ static void OnClearOutputs(HWND hWnd)
     MessageBoxW(hWnd, msg, L"清除完成", MB_OK | MB_ICONINFORMATION);
 }
 
-// 把本轮实际使用的种子追加到 Mapoutput\seed_history.txt（UTF-8 带 BOM）。
+// 把本轮实际使用的种子追加到输出目录下的 seed_history.txt（UTF-8 带 BOM）。
 // 每成功输出一张地图记一行，事后想复现哪张图，把行里的种子填回界面即可。
 static void AppendSeedHistory(const wchar_t* outDir, const SYSTEMTIME& now,
                               const wchar_t* envName, const wchar_t* mapFileName,
@@ -362,6 +421,11 @@ static void OnGenerate(HWND hWnd)
 {
     MapGenParams p = ReadParams(hWnd);
 
+    // 本轮输出目录：界面输出目录框里的文件夹（默认 exe 所在文件夹）。
+    // 地图、雷达图、种子记录和日志全部写这里，构造完生成器立刻同步给它。
+    wchar_t outDir[MAX_PATH] = {};
+    GetChosenOutputDir(hWnd, outDir, ARRAYSIZE(outDir));
+
     // 生成按钮在生成期间禁用（vanilla 的 sub_596300 也这么干：
     // 0x5963d4 EnableWindow(hwnd, FALSE)），结束时恢复。
     HWND generateButton = GetDlgItem(hWnd, ID_GENERATE_BTN);
@@ -396,11 +460,14 @@ static void OnGenerate(HWND hWnd)
     const uint32_t globalSeed = (globalSeedInput != 0)
                                   ? globalSeedInput
                                   : (uint32_t)GetTickCount();
+    RandomMapGenerator rmg;
+    // 输出目录必须在第一条诊断日志之前同步好，rmg_diag.log 才会落在所选
+    // 文件夹里（SetOutputDir 同时设置 DiagLog 用的静态目录）。
+    rmg.SetOutputDir(outDir);
+
     RandomMapGenerator::DiagLog("GLOBAL-SEED %08X source=%s MAP-SEED %u source=%s",
                                 globalSeed, globalSeedInput ? "input" : "tickcount",
                                 mapSeedInput, mapSeedInput ? "input" : "default0");
-
-    RandomMapGenerator rmg;
 
     // 把进度阶梯接到预览面板上。Done() 结束时会把这根线摘掉（对应原版
     // sub_643E70 清掉进度条的 hWnd），所以每轮生成前重新挂一次。
@@ -565,19 +632,9 @@ static void OnGenerate(HWND hWnd)
         // sub_4AD7E0）写盘，端口在此代劳。格式、11 字节格记录、IsoMapPack5 /
         // OverlayPack 的打包方式以及核对依据都在 MapGenMapFile.cpp 里。
         {
-            // 输出目录固定为工程根下的 Mapoutput：exe 在 x64\Debug\ 或
-            // x64\Release\ 里，所以从 exe 目录上退两级。目录不在就建。
-            wchar_t exePath[MAX_PATH] = {};
-            GetModuleFileNameW(nullptr, exePath, MAX_PATH);
-            wchar_t* slash = wcsrchr(exePath, L'\\');
-            if (slash)
-                *(slash + 1) = 0;
-            else
-                exePath[0] = 0;
-
-            wchar_t outDir[MAX_PATH] = {};
-            StringCchPrintfW(outDir, ARRAYSIZE(outDir),
-                             L"%s..\\..\\Mapoutput\\", exePath);
+            // 输出目录用函数开头读到的 outDir（界面所选文件夹，默认 exe
+            // 所在文件夹），它本身就是带反斜杠的绝对路径，直接拼文件名；
+            // 目录不在就建。
             CreateDirectoryW(outDir, nullptr);      // 已存在时返回失败，忽略
 
             SYSTEMTIME now = {};
@@ -590,18 +647,13 @@ static void OnGenerate(HWND hWnd)
                              now.wHour, now.wMinute, now.wSecond,
                              p.gameType == 1 ? L".yrm" : L".map");
 
-            // 把 "..\.." 展开，结果框里显示的是真实路径
-            wchar_t fullPath[MAX_PATH] = {};
-            if (GetFullPathNameW(mapPath, MAX_PATH, fullPath, nullptr))
-                StringCchCopyW(mapPath, ARRAYSIZE(mapPath), fullPath);
-
             if (!rmg.SaveMapFile(mapPath))
             {
                 mapPath[0] = 0;
             }
             else
             {
-                // 落盘成功：往 Mapoutput\seed_history.txt 追加本轮种子
+                // 落盘成功：往输出目录下的 seed_history.txt 追加本轮种子
                 const wchar_t* fileName = wcsrchr(mapPath, L'\\');
                 fileName = fileName ? fileName + 1 : mapPath;
                 AppendSeedHistory(outDir, now, LandTypeStr(cfg.landType), fileName,
@@ -656,7 +708,7 @@ static void OnGenerate(HWND hWnd)
             L"环境光（当前剧场+时间）：%d\n"
             L"植被密度（当前地形）：%d - %d\n"
             L"矿区灯（当前剧场+时间）：%hs\n"
-            L"雷达底图：radar_preview.png（Mapoutput 目录）",
+            L"雷达底图：radar_preview.png（输出目录）",
             LandTypeStr(cfg.landType),
             kTheaterOptions[p.theater],
             kTimeOptions[p.timeOfDay],
@@ -760,11 +812,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         //        256, y, 130, 24, 0, cs->hInstance);
         //}
 
+        // 输出目录行（占用原种子框空出的 y=240 位置）。
+        // 路径框默认显示 exe 所在文件夹：产物默认就落在 exe 旁边；
+        // 点"浏览…"可让使用者自选任意文件夹。路径框只读，只能通过对话框改，
+        // 避免手敲出非法路径。
+        {
+            wchar_t exeDir[MAX_PATH] = {};
+            GetExeDir(exeDir, ARRAYSIZE(exeDir));
+
+            CreateCtl(hWnd, L"Static", L"输出目录",
+                WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
+                28, 240, 84, 26, 0, cs->hInstance);
+            CreateCtl(hWnd, L"Edit", exeDir,
+                WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL | ES_READONLY,
+                124, 242, 176, 24, ID_OUTDIR_EDIT, cs->hInstance);
+            CreateCtl(hWnd, L"Button", L"浏览…",
+                WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | WS_TABSTOP,
+                308, 240, 56, 26, ID_BROWSE_BTN, cs->hInstance);
+        }
+
         CreateCtl(hWnd, L"Button", L"生成",
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | WS_TABSTOP,
             152, 302, 120, 36, ID_GENERATE_BTN, cs->hInstance);
 
-        // 清除输出：删掉 Mapoutput 下历次生成的 .map 和阶段快照
+        // 清除输出：删掉所选输出文件夹下历次生成的 .map 和阶段快照
         CreateCtl(hWnd, L"Button", L"清除输出",
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | WS_TABSTOP,
             280, 302, 84, 36, ID_CLEAR_BTN, cs->hInstance);
@@ -884,6 +955,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         {
             OnClearOutputs(hWnd);
         }
+        else if (HIWORD(wParam) == BN_CLICKED && LOWORD(wParam) == ID_BROWSE_BTN)
+        {
+            OnBrowseOutputDir(hWnd);
+        }
         break;
     }
     case WM_DESTROY:
@@ -912,6 +987,9 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int)
     // 进度条控件在 comctl32 里，用之前先初始化
     INITCOMMONCONTROLSEX icc = { sizeof(INITCOMMONCONTROLSEX), ICC_PROGRESS_CLASS };
     InitCommonControlsEx(&icc);
+
+    // 新版"选择文件夹"对话框（BIF_NEWDIALOGSTYLE）要求先初始化 COM。
+    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
     // 1. 注册窗口类
     WNDCLASSW wc = { 0 };
@@ -947,5 +1025,6 @@ int __stdcall wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int)
         DispatchMessage(&msg);
     }
 
+    CoUninitialize();   // 和开头的 CoInitializeEx 配对
     return (int)msg.wParam;
 }

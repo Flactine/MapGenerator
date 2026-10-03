@@ -1160,6 +1160,9 @@ bool RandomMapGenerator::SaveMapFile(const wchar_t* path)
     // ---- 7. and the readable dump of the very same records ----------------
     // "<the map>.isopack5.txt". The pack in the .map is base64 of an LZO stream,
     // so per-cell heights cannot be eyeballed there; this file spells them out.
+    // 这是给开发期逐格核对用的转储，只在 Debug 下生成；Release（定义了
+    // NDEBUG）不写这个文件，使用者的输出文件夹里只留成品地图。
+#ifndef NDEBUG
     {
         std::wstring dumpPath(path);
         const size_t dot = dumpPath.find_last_of(L'.');
@@ -1174,6 +1177,7 @@ bool RandomMapGenerator::SaveMapFile(const wchar_t* path)
             std::fclose(dumpFile);
         }
     }
+#endif
 
     return written == text.size();
 }
@@ -1187,26 +1191,18 @@ bool RandomMapGenerator::SaveMapFile(const wchar_t* path)
 //
 // The snapshot is an ordinary ".map" written by SaveMapFile, so the IsoMapPack5
 // and overlay packs are the real compressed streams FA2 loads - not a text form.
-// It goes to the folder the finished map goes to ("<exe>\..\..\Mapoutput\") and
-// is named "<YYYYMMDD_HHMMSS>_<stageName>.map", so a batch of stages sorts by
-// time while the stage still reads off the file name.
+// It goes to the folder the finished map goes to (the UI-selected output
+// folder, by default the exe's own folder) and is named
+// "<YYYYMMDD_HHMMSS>_<stageName>.map", so a batch of stages sorts by time while
+// the stage still reads off the file name.
 // ---------------------------------------------------------------------------
 void RandomMapGenerator::SaveStageSnapshot(const char* stageName)
 {
     if (stageName == nullptr || *stageName == '\0')
         return;
 
-    // Same output directory the UI uses: from the exe folder up two levels.
-    wchar_t exePath[MAX_PATH] = {};
-    if (GetModuleFileNameW(nullptr, exePath, MAX_PATH) != 0)
-    {
-        wchar_t* slash = wcsrchr(exePath, L'\\');
-        *(slash ? slash + 1 : exePath) = 0;
-    }
-
-    wchar_t outDir[MAX_PATH] = {};
-    swprintf_s(outDir, ARRAYSIZE(outDir), L"%s..\\..\\Mapoutput\\", exePath);
-    CreateDirectoryW(outDir, nullptr);      // already there -> fails, ignored
+    // Same output directory the finished map uses (outputDir_, trailing slash).
+    CreateDirectoryW(outputDir_.c_str(), nullptr);   // already there -> ignored
 
     wchar_t stage[128] = {};
     MultiByteToWideChar(CP_ACP, 0, stageName, -1, stage, ARRAYSIZE(stage));
@@ -1214,11 +1210,12 @@ void RandomMapGenerator::SaveStageSnapshot(const char* stageName)
     SYSTEMTIME now = {};
     GetLocalTime(&now);
 
-    wchar_t path[MAX_PATH] = {};
-    swprintf_s(path, ARRAYSIZE(path),
-               L"%s%04d%02d%02d_%02d%02d%02d_%s.map",
-               outDir, now.wYear, now.wMonth, now.wDay,
+    wchar_t stamp[64] = {};
+    swprintf_s(stamp, ARRAYSIZE(stamp),
+               L"%04d%02d%02d_%02d%02d%02d_%s.map",
+               now.wYear, now.wMonth, now.wDay,
                now.wHour, now.wMinute, now.wSecond, stage);
 
-    SaveMapFile(path);
+    const std::wstring path = outputDir_ + stamp;
+    SaveMapFile(path.c_str());
 }

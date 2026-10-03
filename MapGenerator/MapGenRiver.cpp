@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // MapGenRiver.cpp - river / water-body subsystem of the random map generator
 //
 // Everything in this file was moved verbatim out of MapGen.cpp; the addresses
@@ -20,6 +20,8 @@
 //   BuildWaterRing       sub_5A0700   ring 0 of a water body
 //   IsWaterFamilyTile    sub_4865D0   water / shore tile family test
 //   ExpandWaterBody      sub_5A0160   ring expansion / absorption
+//   DecorateWaterTiles   sub_59C630   whole-map water-detail pass
+//   PlaceWaterDetailTile sub_5A6C10   water detail tile stamping
 //   LoadTheaterTiles     [General] tile-range snapshots of sub_545150
 //
 // GenerateLake (sub_59C920) was moved to MapGenLake.cpp.
@@ -169,6 +171,11 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
     // except for a possible 1-ulp difference that cannot flip F2I64.
     int targetLength = rng_.RandomFloatRange(35, 125);
 
+    // [TEMP DIAG] resolved start and parameters for this attempt.
+    DiagLog("RIVER g=%d start=(%d,%d) angle=%.3f width=%d target=%d tributary=%d",
+            genCode_, start & 0xFFFF, static_cast<uint32_t>(start) >> 16,
+            angle, width, targetLength, static_cast<int>(isTributary));
+
     // ---- Pre-loop state (0x59d940 - 0x59d9a3) ----
     const double theta0 = angle;  // vanilla `number`: the initial flow angle;
                                   // the step-6 jitter clamps the current
@@ -275,6 +282,8 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
                     // 0x59dc12: the mark belongs to another (older) water
                     // pass -> pollution; the whole attempt fails, but the
                     // rest of this cross-section is still carved
+                    DiagLog("RIVER-POLLUTE step=%d cell=(%d,%d) mark=%d",
+                            steps, X, Y, mark);
                     alive = false;
                 }
             }
@@ -426,6 +435,10 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
             // cannot finish now poisons the trunk exactly like vanilla; one
             // that succeeds leaves the main loop running.
             alive = GenerateRiver(&branchStart, branchAngle, true);
+            DiagLog("RIVER-FORK step=%d start=(%d,%d) angle=%.3f result=%d",
+                    steps, branchStart & 0xFFFF,
+                    static_cast<uint32_t>(branchStart) >> 16,
+                    branchAngle, static_cast<int>(alive));
         }
 
         // (6) Angle jitter (0x59dfab - 0x59e084): once more than 5 cells
@@ -504,6 +517,11 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
         termRand = rng_.Unit();
         ++steps;
     } while (termRand >= 0.005);
+    // [SNAPSHOT-OFF] SaveStageSnapshot("termRand");
+
+    // [TEMP DIAG] main loop exited: advanced cells, live flag, last 0.5% roll.
+    DiagLog("RIVER-END steps=%d alive=%d term=%.4f",
+            steps, static_cast<int>(alive), termRand);
 
     // ---- 5.5 Exit gates + terminal lake (0x59e1a2 - 0x59e235) ----
     // The loop left either by natural termination (termRand < 0.005, the
@@ -534,6 +552,7 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
                 alive = false;               // 0x59e235
         }
     }
+    // [SNAPSHOT-OFF] SaveStageSnapshot("lakeStartA");
 
     // ---- 5.6 Top-level post-processing (0x59e241 - 0x59e307) ----
     // Three-stage pipeline, top-level rivers only (entry-snapshot gate,
@@ -544,6 +563,7 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
         // water cells stamped with the current generation code; failure
         // kills the river.
         alive = SmoothWaterBody(genCode_, 0);
+        // [SNAPSHOT-OFF] SaveStageSnapshot("SmoothWaterBody2");
 
         if (alive)
         {
@@ -561,7 +581,7 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
             // 0x59e29e) - the ring cells carry the bumped code. A marked
             // cell whose tile is still a placeholder - 0 = plain land,
             // 0xFFFF = covered by a multi-cell tile - becomes the
-            // shore-correction tile (game global IsoTileTypeIndex_0).
+            // green ground tile (game global dword_AA0E18).
             // Runs regardless of the expansion's own result (asm gates
             // this block on the SMOOTHING result only).
             for (int Y = 0; Y < size_.workSide; ++Y)
@@ -575,12 +595,13 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
                         continue;   // non-diamond cell - never marked
                     int tile = cell->IsoTileTypeIndex;
                     if (tile == 0 || tile == 0xFFFF)
-                        cell->IsoTileTypeIndex = shoreTileIndex_;
+                        cell->IsoTileTypeIndex = greenTileIndex_;  // 0x59e301 (dword_AA0E18)
                 }
             }
         }
     }
 
+    // [SNAPSHOT-OFF] SaveStageSnapshot("Top-level");
     // ---- 5.7 canyon branch / 5.8 finish expansion / 5.9 rollback ----
     // (0x59e31c - 0x59e52d, the tail of sub_59D510). The vanilla goto graph is
     // reproduced below with the label names quoted, so each branch can be
@@ -620,6 +641,7 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
             if (!FindCandidateCenter(genCode_, 0.01, rect, anchor, 1))
                 return RollbackRiver(genCode_, deltaCount);  // LABEL_151
             alive = ExpandWaterBody(genCode_, 6, 0, 0, 512, 512, 0, 0);
+            // [SNAPSHOT-OFF] SaveStageSnapshot("TExpandWaterBody1");
             if (!alive)
                 return RollbackRiver(genCode_, deltaCount);
 
@@ -657,6 +679,7 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
             if (!canyonLifted)
             {
                 alive = ExpandWaterBody(genCode_, 2, 0, 0, 512, 512, 0, 0);
+                // [SNAPSHOT-OFF] SaveStageSnapshot("ExpandWaterBody2");
                 if (!alive)
                     return RollbackRiver(genCode_, deltaCount);  // LABEL_146/147
             }
@@ -665,6 +688,7 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
         {
             // 0x59e4f7: delta present, so the ring is lifted by baseLevel_.
             alive = ExpandWaterBody(genCode_, 2, 0, 0, 512, 512, 1, baseLevel_);
+            // [SNAPSHOT-OFF] SaveStageSnapshot("ExpandWaterBody3");
             if (!alive)
                 return RollbackRiver(genCode_, deltaCount);
         }
@@ -680,6 +704,7 @@ bool RandomMapGenerator::GenerateRiver(int* startXY, double initialAngle,
         if (deltaCount > 0)
         {
             alive = ExpandWaterBody(genCode_, 2, 0, 0, 512, 512, 1, baseLevel_);
+            // [SNAPSHOT-OFF] SaveStageSnapshot("ExpandWaterBody4");
             if (!alive)
                 return RollbackRiver(genCode_, deltaCount);
         }
@@ -920,7 +945,7 @@ bool RandomMapGenerator::FindCandidateCenter(int genCode, double density,
         double angle;
         if (dx != 0)
         {
-            angle = std::atan(-((double)dy / (double)dx));   // sub_4CADE0
+            angle = TableAtan(-((double)dy / (double)dx));   // sub_4CADE0 (table)
             if (dx < 0)
                 angle += 3.141592653589793;           // 0x5a0b06
         }
@@ -1013,7 +1038,7 @@ bool RandomMapGenerator::FindCandidateCenter(int genCode, double density,
                     double angle;
                     if (dx != 0)
                     {
-                        angle = std::atan(-((double)dy / (double)dx));
+                        angle = TableAtan(-((double)dy / (double)dx));   // sub_4CADE0 (table)
                         if (dx < 0)
                             angle += 3.141592653589793;   // 0x5a0ec2
                     }
@@ -1213,10 +1238,13 @@ void RandomMapGenerator::GenerateDelta(int genCode, int startXY, int endXY,
     bool ok = FindCandidateCenter(genCode, 0.003, rect, anchor, 0);  // 0x59ec6a
     if (ok)
     {
-        ok = SmoothWaterBody(genCode_, 0);             // 0x59ec8d
+        ok = SmoothWaterBody(genCode_, 0);          
+
+        // [SNAPSHOT-OFF] SaveStageSnapshot("SmoothWaterBody");// 0x59ec8d
         if (ok)
         {
             ok = ExpandWaterBody(genCode_, 2, fanX, fanY, fanW, fanH, 0, 0); // 0x59ecd5
+            // [SNAPSHOT-OFF] SaveStageSnapshot("ExpandWaterBody0");
             if (ok)
             {
                 // 0x59ecee - 0x59ed36: raise every cell of THIS fan.
@@ -1412,6 +1440,7 @@ void RandomMapGenerator::GenerateDelta(int genCode, int startXY, int endXY,
 // ---------------------------------------------------------------------------
 bool RandomMapGenerator::SmoothWaterBody(int genCode, int flag)
 {
+    DiagLog("SMOOTH g=%d flag=%d", genCode, flag);
     ResetPreviewState();
 
     if (!workCells_)
@@ -1437,6 +1466,7 @@ bool RandomMapGenerator::SmoothWaterBody(int genCode, int flag)
         }
     }
 
+    // [SNAPSHOT-OFF] SaveStageSnapshot("FloodFill");
     // Pass 2: placeholder tile cleanup (return value deliberately ignored).
     {
         CellIterator it;
@@ -1447,7 +1477,19 @@ bool RandomMapGenerator::SmoothWaterBody(int genCode, int flag)
                 break;
             CleanupTile(cell, genCode);
         }
+        // [SNAPSHOT-OFF] SaveStageSnapshot("CleanupTile");
     }
+
+    // [FIX] Carve staircase-bend inner tips before shore pieces are chosen,
+    // so the bend resolves to one continuous piece instead of piece22/piece14
+    // fighting at an internal seam.
+    if (ok)
+        FillStaircaseBends(genCode);
+    // [SNAPSHOT-OFF] SaveStageSnapshot("FillStaircaseBends");
+
+    // [FIX] 铺岸片前把"2x2 岸片无解"的对角水角填回陆地（每处 1 格）。
+    if (ok)
+        FillUnsolvableShoreCorners(genCode);
 
     // Pass 3: shore tile selection, first round.
     {
@@ -1459,6 +1501,7 @@ bool RandomMapGenerator::SmoothWaterBody(int genCode, int flag)
                 break;
             ok = SelectShoreTile(cell, 1, genCode, flag);
         }
+        // [SNAPSHOT-OFF] SaveStageSnapshot("SelectShoreTile");
     }
 
     // Pass 4: shore tile selection, second round - its result is the return.
@@ -1471,9 +1514,244 @@ bool RandomMapGenerator::SmoothWaterBody(int genCode, int flag)
                 break;
             ok = SelectShoreTile(cell, 2, genCode, flag);
         }
+        // [SNAPSHOT-OFF] SaveStageSnapshot("SelectShoreTile2");
     }
 
     return ok;
+}
+
+// ---------------------------------------------------------------------------
+// FillStaircaseBends - staircase river-bend repair (transplant-side fix).
+//
+// A narrow river that turns a sharp corner can leave two diagonally adjacent
+// land cells A=(x,y) and B: water occupies the whole row north of A, the cell
+// east of A, and (for B) the cells east/SE. The per-cell shore pass then
+// stamps piece22 over A and piece14 over B; piece22 draws water to its tip and
+// piece14 puts plain sand on B, so water visibly meets sand (art clash).
+//
+// Carving B (the bend's inner tip) gives A five water neighbours, which makes
+// the continuous piece15 selectable: one 2x2 piece wraps the corner. Two
+// mirror directions are handled. Only real water tiles count. No-op when no
+// bend is present; running it twice carves nothing the second time.
+// ---------------------------------------------------------------------------
+void RandomMapGenerator::FillStaircaseBends(int genCode)
+{
+    const int side = size_.workSide;
+
+    auto realWater = [&](int x, int y) -> bool
+    {
+        if (x < 0 || y < 0 || x >= side || y >= side)
+            return false;
+        MapCell* c = cellSlots_[512 * y + x];
+        return c != nullptr && IsWaterTile(c);
+    };
+
+    // Collect every bend's inner-tip cell first, then carve them as one batch.
+    std::vector<std::pair<int, int> > tips;
+
+    for (int y = 0; y < side; ++y)
+    {
+        for (int x = 0; x < side; ++x)
+        {
+            MapCell* a = (CellExists(x, y)) ? cellSlots_[512 * y + x] : nullptr;
+            if (a == nullptr || IsWaterTile(a))
+                continue;
+
+            // Direction + : B = (x+1,y+1). Water at NW,N,NE,E of A and at the
+            // shared E cell plus E,SE of B.
+            if (realWater(x - 1, y - 1) && realWater(x, y - 1) &&
+                realWater(x + 1, y - 1) && realWater(x + 1, y) &&
+                realWater(x + 2, y + 1) && realWater(x + 2, y + 2))
+            {
+                MapCell* b = (CellExists(x + 1, y + 1))
+                    ? cellSlots_[512 * (y + 1) + (x + 1)] : nullptr;
+                if (b != nullptr && !IsWaterTile(b))
+                    tips.push_back(std::make_pair(x + 1, y + 1));
+            }
+
+            // Direction - (mirror): B = (x-1,y+1). Water at NE,N,NW,W of A and
+            // at the shared W cell plus W,SW of B.
+            if (realWater(x + 1, y - 1) && realWater(x, y - 1) &&
+                realWater(x - 1, y - 1) && realWater(x - 1, y) &&
+                realWater(x - 2, y + 1) && realWater(x - 2, y + 2))
+            {
+                MapCell* b = (CellExists(x - 1, y + 1))
+                    ? cellSlots_[512 * (y + 1) + (x - 1)] : nullptr;
+                if (b != nullptr && !IsWaterTile(b))
+                    tips.push_back(std::make_pair(x - 1, y + 1));
+            }
+        }
+    }
+
+    for (size_t k = 0; k < tips.size(); ++k)
+    {
+        const int tx = tips[k].first;
+        const int ty = tips[k].second;
+
+        // Flatten the tip and make it real water of this body.
+        MapCell* tip = cellSlots_[512 * ty + tx];
+        tip->Height = 0;
+        tip->IsoTileTypeIndex = waterTileIndex_;
+        WorkAt(tx, ty).data[14] = genCode;
+
+        // Invalidate the neighbour masks so passes 3/4 recompute (above all
+        // the outer-corner land cell A that now sees five water neighbours).
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                const int nx = tx + dx;
+                const int ny = ty + dy;
+                if (CellExists(nx, ny))
+                    WorkAt(nx, ny).data[16] = -1;
+            }
+        }
+
+        DiagLog("BEND-FILL tip=(%d,%d) g=%d", tx, ty, genCode);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// FillUnsolvableShoreCorners - 铺岸片前抹掉"2x2 岸片无解"的单格水角
+// （移植侧修形，非原版逻辑；判据对原版 6 张山地图 0 命中）。
+//
+// 病根（截图实证：一格宽沙颈、单格沙菱形扎进深水）：岸片最小是 2x2，下列
+// 两种水形里无论怎么选片都盖不全水边——
+//   A 型：陆格 a 正交四邻全陆、只在一个对角 d 触水，而拐角片朝对角反方向
+//         展开的那一列/行，两格自己又贴着一堵正交深水墙。拐角片的浅水绿
+//         边只朝 d，盖不住水墙那一侧，于是沙/草直接接深水。
+//   B 型：两个对角相邻的陆格各只在"互相背离"的对角触水（NE 对 SW、NW 对
+//         SE），它们选中的两个 2x2 拐角片重叠抢占、绿边朝向相反，先到的
+//         落片、后到的第二遍也铺不上。
+//
+// 处理：把咬得最近的那个"对角水角"填回陆地（每处恰好 1 格）。岸线随即退
+// 成 2 格尺度、沙颈变粗，pass 3/4 的 2x2 片就能正常铺。实测本种子只命中
+// 两处、共 2 格：A 型填 (47,49)，B 型填 (109,67)。先整批判定位再统一改，
+// 填陆按湖体回滚的同款写法（tile 0 占位、Level 归基准、清生成代号），并
+// 失效周围 3x3 的邻接掩码缓存，让 pass 3/4 重算。
+//
+// 时序：FillStaircaseBends 之后、pass 3 选岸片之前。
+// ---------------------------------------------------------------------------
+void RandomMapGenerator::FillUnsolvableShoreCorners(int genCode)
+{
+    (void)genCode;
+    const int side = size_.workSide;
+
+    auto land = [&](int x, int y) -> bool
+    {
+        if (x < 0 || y < 0 || x >= side || y >= side)
+            return false;
+        MapCell* c = cellSlots_[512 * y + x];
+        return c != nullptr && !IsWaterTile(c);
+    };
+    auto water = [&](int x, int y) -> bool
+    {
+        if (x < 0 || y < 0 || x >= side || y >= side)
+            return false;
+        MapCell* c = cellSlots_[512 * y + x];
+        return c != nullptr && IsWaterTile(c);
+    };
+
+    // 候选陆格只取占位格（与 SelectShoreTile 的 mode-0 门同源）。方框内
+    // 菱形外的槽为 null，必须先判空，否则解引用即崩。
+    auto placeholder = [&](int x, int y) -> bool
+    {
+        if (x < 0 || y < 0 || x >= side || y >= side)
+            return false;
+        MapCell* c = cellSlots_[512 * y + x];
+        return c != nullptr && IsPlaceholderTile(c);
+    };
+
+    // 收集需要填回陆地的"对角水角"坐标（去重）。
+    std::vector<std::pair<int, int> > fills;
+    auto addFill = [&](int x, int y)
+    {
+        const std::pair<int, int> key = std::make_pair(x, y);
+        if (std::find(fills.begin(), fills.end(), key) == fills.end())
+            fills.push_back(key);
+    };
+
+    for (int y = 0; y < side; ++y)
+    {
+        for (int x = 0; x < side; ++x)
+        {
+            if (!placeholder(x, y))
+                continue;
+
+            // 正交四邻必须全是陆地。
+            if (water(x, y - 1) || water(x + 1, y) ||
+                water(x, y + 1) || water(x - 1, y))
+                continue;
+
+            const bool nw = water(x - 1, y - 1);
+            const bool ne = water(x + 1, y - 1);
+            const bool sw = water(x - 1, y + 1);
+            const bool se = water(x + 1, y + 1);
+            const int diagCount = (nw ? 1 : 0) + (ne ? 1 : 0)
+                                + (sw ? 1 : 0) + (se ? 1 : 0);
+            if (diagCount != 1)
+                continue;
+
+            // ---- B 型：背靠背角岸对。a 为偏南那侧角格，优先处理 ----
+            // SW 角格 a=(x,y) 与 NE 角格 b=(x+1,y-1) 配对。
+            if (sw && placeholder(x + 1, y - 1) && land(x + 1, y - 1)
+                && !water(x + 1, y - 2) && !water(x + 2, y - 1)   // b 的 N/E
+                && !water(x + 1, y)     && !water(x, y - 1)       // b 的 S/W
+                && water(x + 2, y - 2)                            // b 仅 NE 对角水
+                && !water(x, y - 2) && !water(x + 2, y))
+            {
+                addFill(x - 1, y + 1);  // 填 a 的 SW 水角
+                continue;
+            }
+            // SE 角格 a=(x,y) 与 NW 角格 b=(x-1,y-1) 配对。
+            if (se && placeholder(x - 1, y - 1) && land(x - 1, y - 1)
+                && !water(x - 1, y - 2) && !water(x, y - 1)       // b 的 N/E
+                && !water(x - 1, y)     && !water(x - 2, y - 1)   // b 的 S/W
+                && water(x - 2, y - 2)                            // b 仅 NW 对角水
+                && !water(x, y - 2) && !water(x - 2, y))
+            {
+                addFill(x + 1, y + 1);  // 填 a 的 SE 水角
+                continue;
+            }
+
+            // ---- A 型：拐角片展开侧整列/整行贴着正交深水墙 ----
+            if (nw && water(x + 2, y) && water(x + 2, y + 1))
+                addFill(x - 1, y - 1);  // 填 NW 水角
+            else if (ne && water(x, y + 2) && water(x + 1, y + 2))
+                addFill(x + 1, y - 1);  // 填 NE 水角
+            else if (sw && water(x + 2, y) && water(x + 2, y + 1))
+                addFill(x - 1, y + 1);  // 填 SW 水角
+            else if (se && water(x, y - 2) && water(x + 1, y - 2))
+                addFill(x + 1, y + 1);  // 填 SE 水角
+        }
+    }
+
+    // 统一把命中的水角填回陆地（与湖体失败回滚同款还原）。
+    for (size_t k = 0; k < fills.size(); ++k)
+    {
+        const int fx = fills[k].first;
+        const int fy = fills[k].second;
+        MapCell* c = cellSlots_[512 * fy + fx];
+        if (c == nullptr)
+            continue;
+
+        c->IsoTileTypeIndex = 0;
+        c->Height = 0;
+        c->Level = baseLevel_;
+        WorkAt(fx, fy).data[14] = 0;
+        WorkAt(fx, fy).Byte(75) = 0;
+
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            for (int dx = -1; dx <= 1; ++dx)
+            {
+                if (CellExists(fx + dx, fy + dy))
+                    WorkAt(fx + dx, fy + dy).data[16] = -1;
+            }
+        }
+
+        DiagLog("SHORE-CORNER-FILL water=(%d,%d) g=%d", fx, fy, genCode);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1869,7 +2147,11 @@ int RandomMapGenerator::CleanupTile(MapCell* cell, int genCode)
 //          index - its ArrayIndex - ever reaches the map, so that is what we
 //          carry)
 //     target = cell->MapCoords + shoreAnchor_[n12]
-//         (vanilla offset table @ 0xABDB64, paired int16 X/Y, indexed by n12)
+//         (vanilla offset table @ 0xABDB64, paired int16 X/Y, indexed by n12).
+//         That table has no writer in the shipped image - it sits in the
+//         uninitialised tail of .data and every reference to it is a read - so
+//         the offset is 0 and the stamp runs straight into the water on its +X
+//         / +Y side. ShoreStampOffset supplies the shift instead.
 //     SetFoundationCenter(target)                 (sub_4A91B0)
 //     placed = true
 //     mode 1 -> PlaceIsoTile(0, 0, cell->Level, genCode, &placed, flag)
@@ -1883,15 +2165,23 @@ int RandomMapGenerator::CleanupTile(MapCell* cell, int genCode)
 // intact; the RNG draw of step 0 is consumed in the correct order and count
 // either way.
 // ---------------------------------------------------------------------------
+// Water-side pull-back of a shore stamp, in cells. Defined next to
+// kShoreFootprints, which holds the piece sizes it needs.
+static CellStruct ShoreStampOffset(int n12, int mask);
+
 bool RandomMapGenerator::SelectShoreTile(MapCell* cell, int mode, int genCode, int flag)
 {
     // 0. One RNG draw per visited cell.
     const int roll = rng_.RandomFloatRange(0, 5);
 
+    // Trigger coordinates, used by the shore anchor / placement tail.
+    const int cellX = cell->MapCoords & 0xFFFF;
+    const int cellY = static_cast<uint32_t>(cell->MapCoords) >> 16;
+
     // 1. Connectivity mask (mode 1 -> require placeholder, mode 2 -> reject water).
     const int mask = (mode == 2) ? TileNeighbourMask(cell, 1)
                                  : TileNeighbourMask(cell, 0);
-    if (mask == 0)
+    if (mask == 0)                                          // 0x57ad2f
         return true;
 
     int n12;
@@ -1911,7 +2201,7 @@ bool RandomMapGenerator::SelectShoreTile(MapCell* cell, int mode, int genCode, i
             n12 = ((mask & 0x44) == 0x44) ? (roll & 1) + 31
                                           : ((mask & 4) ? 5 : 29);
         else
-            return true;
+            return true;                                    // 0x57ae05
     }
     else
     {
@@ -1985,11 +2275,10 @@ bool RandomMapGenerator::SelectShoreTile(MapCell* cell, int mode, int genCode, i
     //    PlaceIsoTile (which carries the shore family's geometry).
     currentBuildingType_ = shorePieces_ + n12 - 1;
 
-    const int cellX = cell->MapCoords & 0xFFFF;
-    const int cellY = (uint32_t)cell->MapCoords >> 16;
+    const CellStruct pull = ShoreStampOffset(n12, mask);
     const CellStruct target{
-        static_cast<int16_t>(cellX + shoreAnchor_[n12].X),
-        static_cast<int16_t>(cellY + shoreAnchor_[n12].Y) };
+        static_cast<int16_t>(cellX + pull.X),
+        static_cast<int16_t>(cellY + pull.Y) };
     SetFoundationCenter(target);
 
     bool placed = true;
@@ -1998,6 +2287,12 @@ bool RandomMapGenerator::SelectShoreTile(MapCell* cell, int mode, int genCode, i
     else
         PlaceIsoTile(shorePieces_, shorePieces_ + 41, cell->Level,
                      genCode, &placed, flag);
+
+    // [TEMP DIAG] the actual stamping decision for this trigger cell.
+    DiagLog("SHORE mode=%d g=%d cell=(%d,%d) mask=0x%02X n12=%d off=(%d,%d) placed=%d",
+            mode, genCode, cellX, cellY, mask, n12,
+            static_cast<int>(pull.X), static_cast<int>(pull.Y),
+            static_cast<int>(placed));
 
     return placed;
 }
@@ -2109,6 +2404,152 @@ static const IsoFootprint kShoreFootprints[42] =
     { 2, 2, 0xFULL }, { 6, 4, 0xFFFFCEULL },
     { 9, 5, 0x1FEFF7FC380CULL },
 };
+
+// ---------------------------------------------------------------------------
+// ShoreStampOffset - where SelectShoreTile puts the shore stamp's origin.
+//
+// PlaceIsoTile always grows +X/+Y from the foundation center (cell X =
+// CenterCell.X + col, cell Y = CenterCell.Y + row), so a piece of size w x h
+// anchored at the trigger cell covers [x, x+w-1] x [y, y+h-1]. Water inside
+// that rectangle is fatal: the per-cell acceptance gate rejects it, and the
+// first rejection abandons the whole footprint (PlaceIsoTile returns on the
+// spot), which leaves the water-adjacent cell bare.
+//
+// The shipped image's own anchor table (0xABDB64) would place the shift, but
+// it sits in the uninitialised tail of .data with no writer anywhere in the
+// binary, so it is all zero and the piece runs straight into the water on its
+// +X / +Y side. This helper supplies the shift instead.
+//
+// Two anchors are tried, in this order:
+//
+// 1. The piece's own facing (ShoreFacesEast / ShoreFacesSouth): the art is
+//    drawn against the water on one edge, so the trigger cell has to end up on
+//    that edge and the stamp - which only grows +X/+Y - must be pulled back by
+//    w-1 in X and/or h-1 in Y.  Used only when that rectangle is water-clear.
+//    The search below happens to return the same anchor for every piece whose
+//    water is on a SIDE, but not for the corner (diagonal) groups NE 35/36,
+//    SW 39/40 and SE 33/34: the water they must dodge is on a corner the
+//    zero-shift rectangle never covers, so the search stops one step short and
+//    the corner art ends up painted one row/column into the land - over cells
+//    that then keep the corner art even though they have water on a side of
+//    their own (the bend defect).  This anchor is what fixes those.
+//
+// 2. Otherwise it looks at the four placements the trigger allows - no shift,
+//    either single shift, both - and keeps the LEAST displaced one whose
+//    rectangle holds none of the water cells the mask names.
+//    Least-displacement matters: shifting further than the water requires
+//    pushes the origin onto a cell an earlier piece has already stamped, which
+//    is the failure the rectangle check alone would miss.
+//    Ties (w == h, both single shifts clear) go to the X shift by loop order.
+//
+// `mask` is TileNeighbourMask's: NE 0x01, E 0x02, SE 0x04, S 0x08, SW 0x10,
+// W 0x20, NW 0x40, N 0x80.
+// ---------------------------------------------------------------------------
+
+// Does the rectangle [dx, dx+w-1] x [dy, dy+h-1], taken relative to the
+// trigger cell, cover any of the trigger's water neighbours?
+static bool FootprintCoversWater(int mask, int dx, int dy, int w, int h)
+{
+    static const struct { int bit; int ox; int oy; } kNeighbours[8] =
+    {
+        { 0x80,  0, -1 }, { 0x01,  1, -1 }, { 0x02,  1,  0 }, { 0x04,  1,  1 },
+        { 0x08,  0,  1 }, { 0x10, -1,  1 }, { 0x20, -1,  0 }, { 0x40, -1, -1 },
+    };
+
+    for (int i = 0; i < 8; ++i)
+    {
+        if ((mask & kNeighbours[i].bit) == 0)
+            continue;
+        const int ox = kNeighbours[i].ox;
+        const int oy = kNeighbours[i].oy;
+        if (ox >= dx && ox <= dx + w - 1 && oy >= dy && oy <= dy + h - 1)
+            return true;
+    }
+    return false;
+}
+
+// Which edge of the piece its art is drawn against water on, read straight off
+// the n12 dispatch in SelectShoreTile: a group only reaches the n12 it names
+// when the trigger cell has water on that side, so the group itself says which
+// side the piece faces. 6..16 and 22 come from the E-bearing branches (E,
+// N+E, E+S) and 33..36 from the NE / SE fallbacks; 1..8, 13, 29, 31..34 and
+// 39/40 come from the S-bearing ones (S, S+W, E+S) and the SW / SE fallbacks.
+static bool ShoreFacesEast(int n12)
+{
+    switch (n12)
+    {
+    case 6:  case 7:  case 8:  case 9:  case 10: case 11: case 12: case 13:
+    case 14: case 15: case 16: case 22:
+    case 33: case 34: case 35: case 36:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static bool ShoreFacesSouth(int n12)
+{
+    switch (n12)
+    {
+    case 1:  case 2:  case 3:  case 4:  case 5:  case 6:  case 7:  case 8:
+    case 13: case 29: case 31: case 32: case 33: case 34:
+    case 39: case 40:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static CellStruct ShoreStampOffset(int n12, int mask)
+{
+    CellStruct offset;
+    offset.X = 0;
+    offset.Y = 0;
+
+    const int idx = n12 - 1;
+    if (idx < 0 || idx >= 42)
+        return offset;
+
+    const int w = kShoreFootprints[idx].w;
+    const int h = kShoreFootprints[idx].h;
+
+    // The anchor the piece's art asks for: the trigger cell sits on the piece's
+    // water edge, so the stamp (which only grows +X/+Y) has to be pulled back
+    // to keep its far edge there.
+    CellStruct facing;
+    facing.X = ShoreFacesEast(n12) ? static_cast<int16_t>(-(w - 1)) : 0;
+    facing.Y = ShoreFacesSouth(n12) ? static_cast<int16_t>(-(h - 1)) : 0;
+    if ((facing.X != 0 || facing.Y != 0)
+        && !FootprintCoversWater(mask, facing.X, facing.Y, w, h))
+        return facing;
+
+    int bestScore = 0;
+    bool found = false;
+
+    for (int iy = 0; iy < 2; ++iy)
+    {
+        for (int ix = 0; ix < 2; ++ix)
+        {
+            const int dx = (ix != 0) ? -(w - 1) : 0;
+            const int dy = (iy != 0) ? -(h - 1) : 0;
+            if (FootprintCoversWater(mask, dx, dy, w, h))
+                continue;
+
+            const int score = ((dx < 0) ? -dx : dx) + ((dy < 0) ? -dy : dy);
+            if (!found || score < bestScore)
+            {
+                found = true;
+                bestScore = score;
+                offset.X = static_cast<int16_t>(dx);
+                offset.Y = static_cast<int16_t>(dy);
+            }
+        }
+    }
+
+    // Water on both sides of a piece this wide: no placement is clear, so fall
+    // back to the trigger cell itself, exactly as a zero anchor would.
+    return offset;
+}
 
 // Waterfall pieces - GenerateDelta's river-mouth dressing. Measured from the
 // released w-a- .. w-d- tiles: both theaters share the same geometry (only the
@@ -2231,6 +2672,37 @@ static const IsoFootprint kDestroyableCliffFootprints[2] =
     { 4, 6, 0x6FFFF6ULL,
       { 4, 0, 4, 4, 0, 0, 4, 4, 0, 0, 4, 4, 0, 0, 4, 4, 0, 0, 4, 0 } },  // dcliff02
 };
+
+// The footprint of one isotile, resolved from the family tables by the very
+// rule PlaceIsoTile applies: the shore set (42), the cliff set (40), the
+// cliff/water pieces (28), the destroyable cliffs (2) and the four waterfall
+// sets (4 each). nullptr for a tile that is none of them.
+//
+// sub_5A6C10 (PlaceWaterDetailTile) stamps whatever tile it is handed, so it
+// needs the same lookup the foundation stamp uses - that is what this helper
+// is for.
+static const IsoFootprint* FindFamilyFootprint(
+    int tile, int shorePieces, int shoreTileIndex, int waterCliffsIndex,
+    int destroyableCliffsIndex, const int waterFamily4Base[4])
+{
+    if (shorePieces >= 0 && tile >= shorePieces && tile < shorePieces + 42)
+        return &kShoreFootprints[tile - shorePieces];
+    if (shoreTileIndex >= 0 && tile >= shoreTileIndex && tile < shoreTileIndex + 40)
+        return &kCliffFootprints[tile - shoreTileIndex];
+    if (waterCliffsIndex >= 0 && tile >= waterCliffsIndex &&
+        tile < waterCliffsIndex + 28)
+        return &kCliffWaterFootprints[tile - waterCliffsIndex];
+    if (destroyableCliffsIndex >= 0 && tile >= destroyableCliffsIndex &&
+        tile < destroyableCliffsIndex + 2)
+        return &kDestroyableCliffFootprints[tile - destroyableCliffsIndex];
+    for (int f = 0; f < 4; ++f)
+    {
+        if (waterFamily4Base[f] >= 0 && tile >= waterFamily4Base[f] &&
+            tile < waterFamily4Base[f] + 4)
+            return &kWaterfallFootprints[f][tile - waterFamily4Base[f]];
+    }
+    return nullptr;
+}
 
 // The two 42-entry variant tables sub_57B440 consults when an existing shore
 // piece and the one being placed share a cell: dword_82A7F4 @0x82A7F4 ("side"
@@ -2394,6 +2866,23 @@ bool RandomMapGenerator::PlaceIsoTile(int lo, int hi, int level, int genCode,
             WorkCell& work = workCells_[x + size_.workSide * y];
             const int wc = (flag != 0) ? 0 : work.data[14];
 
+            // Port extension: record per-footprint-cell stamp/block outcomes for
+            // CliffSet pieces so RepairCliffPieces can fix swallowed pieces.
+            const auto recordCliff = [&](int okx)
+            {
+                if (genCode == -1 && shoreTileIndex_ >= 0
+                    && tile >= shoreTileIndex_ && tile < shoreTileIndex_ + 40)
+                {
+                    cliffStamps_.push_back(
+                        { static_cast<int16_t>(cx), static_cast<int16_t>(cy),
+                          static_cast<int16_t>(x), static_cast<int16_t>(y),
+                          static_cast<uint8_t>(tile - shoreTileIndex_ + 1),
+                          static_cast<uint8_t>(h),
+                          static_cast<int8_t>(z),
+                          static_cast<uint8_t>(okx) });
+                }
+            };
+
             if (flag == 0 && wc > 0 && wc != genCode && genCode != -1)
             {
                 if (!IsPlaceholderTile(cell))
@@ -2436,6 +2925,9 @@ bool RandomMapGenerator::PlaceIsoTile(int lo, int hi, int level, int genCode,
                         *placed = false;              // LABEL_58 / 0x57b77d
                     return false;
                 }
+                if (shoreTileIndex_ >= 0 && tile >= shoreTileIndex_
+                    && tile < shoreTileIndex_ + 40)
+                    recordCliff(0);
                 continue;                             // LABEL_36: leave it be
             }
             else
@@ -2449,9 +2941,34 @@ bool RandomMapGenerator::PlaceIsoTile(int lo, int hi, int level, int genCode,
             if (IsPlaceholderTile(cell) ||
                 (cell->IsoTileTypeIndex >= lo && cell->IsoTileTypeIndex <= hi))
             {
+                // The Height byte names a cell inside the tile's OWN image, and
+                // it has to be one that exists - RecalcAttributes wipes the cell
+                // (tile -> 0xFFFF, Height -> 0, Slope -> 0) as soon as
+                // TileCellHasFrame(tile, Height) answers false.
+                //
+                // The footprint's cell index is not that number: RA2's cliff,
+                // shore and waterfall art is one cell per TMP (every clat*.tem
+                // in the theater is CellsInX = CellsInY = 1), while the
+                // footprints here are 2 x 2 up to 2 x 3. Writing h verbatim
+                // therefore pointed at cells the art does not have and every
+                // fresh cliff/ramp tile was wiped again on the next recalc.
+                // Vanilla writes the index inside the tile's CellsInX x CellsInY
+                // image grid (sub_57B440: mov [esi+11Ah], bl), so keep h only
+                // when the tile really has that cell.
+                int subCell = h;
+                if (const TileCellAttr* first = TileCellAttrAt(tile, 0))
+                {
+                    const int cells = first->cellsInX * first->cellsInY;
+                    if (cells > 0 && h >= cells)
+                        subCell = 0;
+                }
+
                 cell->IsoTileTypeIndex = tile;
-                cell->Height           = h;
+                cell->Height           = subCell;
                 cell->Level            = level + z;
+                if (shoreTileIndex_ >= 0 && tile >= shoreTileIndex_ &&
+                    tile < shoreTileIndex_ + 40)
+                    recordCliff(1);
                 continue;                             // LABEL_36
             }
 
@@ -2467,6 +2984,9 @@ bool RandomMapGenerator::PlaceIsoTile(int lo, int hi, int level, int genCode,
                 if (placed)
                     *placed = false;                  // 0x57b77d
             }
+            if (shoreTileIndex_ >= 0 && tile >= shoreTileIndex_
+                && tile < shoreTileIndex_ + 40)
+                recordCliff(0);
             return false;                             // 0x57b6aa
         }
     }
@@ -2474,6 +2994,465 @@ bool RandomMapGenerator::PlaceIsoTile(int lo, int hi, int level, int genCode,
     if (placed)
         *placed = true;
     return true;                                      // 0x57b6b3
+}
+
+// ---------------------------------------------------------------------------
+// RepairCliffPieces - PORT-ONLY post pass (runs right after CorrectCliffTiles).
+//
+// Westwood's PlaceCliffs has two unfixed corner cases left in the final map:
+//
+//  A. A multi-cell CliffSet piece has footprint cells that were already taken
+//     by a CliffRamp piece (carved earlier by the region ramp builder) or by
+//     another CliffSet piece. PlaceIsoTile skips those cells (or aborts the
+//     whole stamp midway), so the multi-cell art is left half-rendered:
+//       - a 2x2 wall (slots 4-7) whose EAST column is blocked collapses to the
+//         1x2 vertical wall strip C8 (slot 8, t56);
+//       - every other damaged piece is taken apart into single cells: the
+//         z=4 wall cell becomes the 1x1 inner corner C34 (slot 34, t82) and
+//         each z=0 foot cell becomes one of the flat caps C12..C14
+//         (slots 12-14, t60..t62).
+//
+// Only art (IsoTileTypeIndex / Height) is changed; Level, marks, SlopeIndex
+// and the RNG stream are never touched.
+// ---------------------------------------------------------------------------
+void RandomMapGenerator::RepairCliffPieces()
+{
+    if (shoreTileIndex_ < 0)
+    {
+        cliffStamps_.clear();
+        return;
+    }
+
+    const auto isCliffTile = [&](int t)
+    {
+        return t >= shoreTileIndex_ && t < shoreTileIndex_ + 40;
+    };
+
+    // CorrectCliffTiles swaps pieces inside these slot clusters, so a surviving
+    // cell of a damaged piece may carry any cluster mate afterwards. Arguments
+    // are 0-BASED family indices (tile - shoreTileIndex_, 0..39):
+    //   slots 4-6  -> 3..5   slots 8-10 -> 7..9    slots 11-13 -> 10..12
+    //   slots 14-16-> 13..15 slots 22-24 -> 21..23 slots 34-36 -> 33..35
+    const auto clusterOf = [](int s) -> int
+    {
+        if (s >= 3  && s <= 5)  return 1;
+        if (s >= 7  && s <= 9)  return 2;
+        if (s >= 10 && s <= 12) return 3;
+        if (s >= 13 && s <= 15) return 4;
+        if (s >= 21 && s <= 23) return 5;
+        if (s >= 33 && s <= 35) return 6;
+        return 0;
+    };
+
+    const auto stillHoldsPiece = [&](MapCell* c, int slot1)
+    {
+        if (c == nullptr || !isCliffTile(c->IsoTileTypeIndex))
+            return false;
+        const int idx = c->IsoTileTypeIndex - shoreTileIndex_;
+        // Slots 4-7 (1-based) end up as indices 3..6 (slot 7 never swaps);
+        // every other damaged piece only needs its own swap cluster to match.
+        if (slot1 >= 4 && slot1 <= 7)
+            return idx >= 3 && idx <= 6;
+        return clusterOf(idx) == clusterOf(slot1 - 1);
+    };
+
+    const auto writeTile = [&](int x, int y, int tile, int height)
+    {
+        if (!CellExists(static_cast<int16_t>(x), static_cast<int16_t>(y)))
+            return;
+        MapCell* c = CellAt(static_cast<int16_t>(x), static_cast<int16_t>(y));
+        DiagLog("CLIFF-REPAIR (%d,%d) t%d/h%d -> t%d/h%d L%d",
+                x, y, c->IsoTileTypeIndex, c->Height, tile, height, c->Level);
+        c->IsoTileTypeIndex = tile;
+        c->Height           = static_cast<uint8_t>(height);
+    };
+
+    const int tWallCap  = shoreTileIndex_ + 33;   // C34  1x1 inner corner, z4
+    const int tVStrip   = shoreTileIndex_ + 7;    // C8   1x2 vertical wall
+    const int tFlatBase = shoreTileIndex_ + 11;  // C12..C14 flat caps, z0
+
+    // ---- A. damaged multi-cell pieces (outcomes are contiguous per piece) ---
+    size_t i = 0;
+    while (i < cliffStamps_.size())
+    {
+        const CliffStampOutcome& first = cliffStamps_[i];
+        size_t j = i;
+        int blockedMask = 0;
+        while (j < cliffStamps_.size()
+               && cliffStamps_[j].ox == first.ox
+               && cliffStamps_[j].oy == first.oy
+               && cliffStamps_[j].slot == first.slot)
+        {
+            if (!cliffStamps_[j].ok)
+                blockedMask |= 1 << cliffStamps_[j].h;
+            ++j;
+        }
+
+        if (blockedMask != 0)
+        {
+            const int slot = first.slot;
+
+            // A1: 2x2 wall whose east column (h1/h3) is the only blocked part.
+            //     Surviving west column h0 (z4 origin) + h2 (z0 south) becomes
+            //     the 1x2 vertical C8 strip.
+            const bool eastColumnBlocked =
+                (blockedMask == ((1 << 1) | (1 << 3)));
+            bool haveH0 = false, haveH2 = false;
+            for (size_t k = i; k < j; ++k)
+            {
+                if (!cliffStamps_[k].ok)
+                    continue;
+                if (cliffStamps_[k].h == 0) haveH0 = true;
+                if (cliffStamps_[k].h == 2) haveH2 = true;
+            }
+
+            if (slot >= 4 && slot <= 7 && eastColumnBlocked && haveH0 && haveH2)
+            {
+                MapCell* top = CellAt(first.ox, first.oy);
+                MapCell* foot = CellAt(first.ox,
+                                       static_cast<int16_t>(first.oy + 1));
+                if (stillHoldsPiece(top, slot) && top->Level >= 7
+                    && stillHoldsPiece(foot, slot) && foot->Level <= 5)
+                {
+                    writeTile(first.ox, first.oy, tVStrip, 0);
+                    writeTile(first.ox, first.oy + 1, tVStrip, 1);
+                }
+            }
+            else
+            {
+                // A2: take the surviving cells apart into 1x1 pieces.
+                for (size_t k = i; k < j; ++k)
+                {
+                    const CliffStampOutcome& o = cliffStamps_[k];
+                    if (!o.ok)
+                        continue;
+                    MapCell* c = CellAt(o.x, o.y);
+                    if (!stillHoldsPiece(c, slot))
+                        continue;
+                    if (o.z >= 4)
+                    {
+                        writeTile(o.x, o.y, tWallCap, 0);
+                    }
+                    else
+                    {
+                        const int pick = (static_cast<int>(o.ox)
+                                        + static_cast<int>(o.oy) + o.h) % 3;
+                        writeTile(o.x, o.y, tFlatBase + pick, 0);
+                    }
+                }
+            }
+        }
+
+        i = j;
+    }
+
+    cliffStamps_.clear();
+}
+
+// ---------------------------------------------------------------------------
+// CliffCellsInX - Array.Items[tile]->CellsInX for a CliffSet tile.
+//
+// sub_5A17F0 (the cliff correction pass, MapGenMakingSub.cpp) needs the
+// family's column count to invert the Height a stamped cliff cell carries:
+// Height encodes col + row * CellsInX, so col = Height % CellsInX and
+// row = Height / CellsInX recover the cell's offset inside the tile. The port
+// tabulates the cliff geometry as kCliffFootprints (above), whose `w` is
+// exactly that column count, so this is a range-checked table read. A tile
+// outside the 40-wide CliffSet family answers 1, which keeps the caller's
+// modulo and division defined.
+// ---------------------------------------------------------------------------
+int RandomMapGenerator::CliffCellsInX(int tile) const
+{
+    const int slot = tile - shoreTileIndex_;
+    if (slot < 0 || slot >= 40)
+        return 1;
+    return kCliffFootprints[slot].w;
+}
+
+// ---------------------------------------------------------------------------
+// IsRampArtCell / IsCliffWallRiding / CliffPieceHitsRamp / TrimCliffPieceForRamp
+// - port-only pre-stamp ramp-collision handling for PlaceCliffPiece.
+//
+// A multi-cell ramp face (3x4 / 4x3 SlopeSetPiece or a builder strip) meets a
+// cliff wall in two visually different ways, and they must be told apart:
+//
+//  * Ramp-top seam: the L8 wall cell is met at its own level (L7/L8) by a ramp
+//    cell - the ramp's top row / shoulder. The wall facade then drops onto the
+//    ramp face naturally; that facade is REQUIRED art (it fills the notch
+//    between a cliff plateau and the ramp top). Removing it leaves a white
+//    triangle.
+//
+//  * Ramp-body ride: every ramp neighbour sits >= 2 levels below the wall and
+//    no ramp cell meets it at the top level - the wall was dropped into the
+//    ramp corridor and its facade rides down the ramp face, cutting the ramp.
+//
+// Only the second kind is rejected, and even then the surviving footprint
+// cells are re-stamped as smaller CliffSet pieces (C8 vertical strip, or C34a
+// / C12-14 single cells) instead of being flattened to t0 - same prescription
+// as RepairCliffPieces: a partially covered piece becomes a smaller piece, not
+// bare ground.
+//
+// Eight map neighbours are used (not four orthogonal): the ramp's L8 top meets
+// a wall orthogonally while its L4..L6 body sits on the wall's diagonal side,
+// and in the iso projection the facade occupies that diagonal space.
+// ---------------------------------------------------------------------------
+bool RandomMapGenerator::IsRampArtCell(const MapCell* n) const
+{
+    if (n == nullptr)
+        return false;
+    if (n->SlopeIndex != 0)
+        return true;
+    const int t = n->IsoTileTypeIndex;
+    return (cliffRampsIndex_ >= 0
+            && t >= cliffRampsIndex_ && t < cliffRampsIndex_ + 20)
+        || (rampBaseIndex_ >= 0
+            && t >= rampBaseIndex_ && t < rampBaseIndex_ + 15)
+        || (slopeSetPiecesIndex_ >= 0
+            && t >= slopeSetPiecesIndex_ && t < slopeSetPiecesIndex_ + 10);
+}
+
+// A "big ramp piece" is the multi-cell SlopeSetPieces family (3x4 / 4x3 faces).
+// Its art spans several cells and can reach the diagonal screen space of a wall,
+// so a diagonal neighbour of this family can still ride. The single-cell
+// families (CliffRamps, RampBase) only paint their own cell and never overlap a
+// diagonally placed wall - they are checked on the four orthogonal sides only.
+bool RandomMapGenerator::IsBigRampPiece(const MapCell* n) const
+{
+    if (n == nullptr)
+        return false;
+    const int t = n->IsoTileTypeIndex;
+    return slopeSetPiecesIndex_ >= 0
+        && t >= slopeSetPiecesIndex_ && t < slopeSetPiecesIndex_ + 10;
+}
+
+bool RandomMapGenerator::IsCliffWallRiding(int wx, int wy, int wallLevel)
+{
+    // The wall is built on the low cell; its drawn face (the facade the player
+    // sees) points AWAY from the high ground, i.e. toward the low side. Only a
+    // ramp sitting in front of that facade can be covered by it. A ramp on the
+    // side or behind the facade never overlaps it.
+    //
+    // Step 1: sum the direction vectors of every high neighbour (Level >=
+    // wallLevel) to get the "high ground direction". The facade points the
+    // opposite way.
+    // Step 2: pick the 8-direction index closest to the facade direction.
+    // Step 3: only check that direction and its two diagonal neighbours for
+    // ramp art (orthogonal: any ramp; diagonal: big multi-cell ramp pieces).
+    static const int kDirX[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
+    static const int kDirY[8] = { -1, -1, 0, 1, 1, 1, 0, -1 };
+    // index: 0=N 1=NE 2=E 3=SE 4=S 5=SW 6=W 7=NW
+
+    int highX = 0, highY = 0;
+    for (int d = 0; d < 8; ++d)
+    {
+        const int16_t nx = static_cast<int16_t>(wx + kDirX[d]);
+        const int16_t ny = static_cast<int16_t>(wy + kDirY[d]);
+        if (!CellExists(nx, ny))
+            continue;
+        const MapCell* n = CellAt(nx, ny);
+        if (n->Level >= wallLevel)
+        {
+            highX += kDirX[d];
+            highY += kDirY[d];
+        }
+    }
+    const int faceX = -highX;
+    const int faceY = -highY;
+
+    int bestDir = -1;
+    int bestDot = -1000;
+    for (int d = 0; d < 8; ++d)
+    {
+        const int dot = kDirX[d] * faceX + kDirY[d] * faceY;
+        if (dot > bestDot)
+        {
+            bestDot = dot;
+            bestDir = d;
+        }
+    }
+    if (bestDir < 0)
+        return false;
+
+    bool lowRamp = false;
+    bool topRamp = false;
+    // Only the cell directly in front of the facade can be ridden by the wall.
+    // Ramps on the diagonal neighbours beside the facade lead somewhere else
+    // and must not count.
+    {
+        const int d = bestDir;
+        const int16_t nx = static_cast<int16_t>(wx + kDirX[d]);
+        const int16_t ny = static_cast<int16_t>(wy + kDirY[d]);
+        if (CellExists(nx, ny))
+        {
+            const MapCell* n = CellAt(nx, ny);
+            const bool isRamp = (d % 2 == 0) ? IsRampArtCell(n)
+                                             : IsBigRampPiece(n);
+            if (isRamp)
+            {
+                if (n->Level <= wallLevel - 2)
+                {
+                    lowRamp = true;
+                    // 斜对角的大坡格只有在坡面真的伸到墙立面下方时才算
+                    // 骑坡。CliffSet 的立面只沿正交方向，所以当斜向两个正交
+                    // 邻居里有一个是非坡、且高度不高于该坡格的地面时，它就是
+                    // 与坡同层接平的墙脚行（坡顶在 (x,y-1)、坡底在 (x+1,y-1)、
+                    // 墙脚在 (x+1,y) 这种共线衔接），坡只是悬崖线的延续而不
+                    // 是被墙切断。少了这道关，全场墙片放完后的高度场会让高台
+                    // 合成方向偏向斜角，把本来完好的墙片在拆除阶段误拆掉。
+                    if ((d & 1) != 0)
+                    {
+                        const MapCell* gx = CellAt(
+                            static_cast<int16_t>(wx + kDirX[d]),
+                            static_cast<int16_t>(wy));
+                        const MapCell* gy = CellAt(
+                            static_cast<int16_t>(wx),
+                            static_cast<int16_t>(wy + kDirY[d]));
+                        const int rl = n->Level;
+                        if ((gx != nullptr && !IsRampArtCell(gx)
+                             && gx->Level <= rl)
+                            || (gy != nullptr && !IsRampArtCell(gy)
+                                && gy->Level <= rl))
+                        {
+                            lowRamp = false;
+                        }
+                    }
+                }
+                if (n->Level >= wallLevel - 1)
+                    topRamp = true;
+            }
+        }
+    }
+    DiagLog("RIDING (%d,%d) L%d faceDir=%d low=%d top=%d",
+            wx, wy, wallLevel, bestDir, lowRamp ? 1 : 0, topRamp ? 1 : 0);
+    return lowRamp && !topRamp;
+}
+
+bool RandomMapGenerator::CliffPieceHitsRamp(const MapCell* anchor, int slot)
+{
+    if (anchor == nullptr || slot < 1 || slot > 40)
+        return false;
+
+    const IsoFootprint& fp = kCliffFootprints[slot - 1];
+    const int ax = static_cast<int16_t>(anchor->MapCoords & 0xFFFF);
+    const int ay = static_cast<int16_t>((uint32_t)anchor->MapCoords >> 16);
+    const int baseLevel = anchor->Level;
+
+    int zIndex = 0;
+    for (int row = 0; row < fp.h; ++row)
+    {
+        for (int col = 0; col < fp.w; ++col)
+        {
+            if (((fp.mask >> (row * fp.w + col)) & 1ULL) == 0)
+                continue;
+            const int z = fp.z[zIndex];
+            ++zIndex;
+            const int x = ax + col;
+            const int y = ay + row;
+            if (!CellExists(static_cast<int16_t>(x), static_cast<int16_t>(y)))
+                continue;
+            const MapCell* c = CellAt(static_cast<int16_t>(x),
+                                      static_cast<int16_t>(y));
+            if (z >= 4)
+            {
+                // Wall cell: riding the ramp facade is the original conflict.
+                if (IsCliffWallRiding(x, y, baseLevel + z))
+                    return true;
+            }
+            else
+            {
+                // Foot cell: if it lands on ramp art the wall has no base and
+                // floats over the ramp body. Treat as a hit so the trim pass
+                // can drop the piece instead of stamping a wall without feet.
+                if (IsRampArtCell(c))
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Re-stamp the footprint cells of a rejected piece as smaller CliffSet art:
+//   - a 2x2 wall (slots 4-7) whose EAST column is the riding side collapses to
+//     the C8 1x2 vertical strip (t56) on its surviving west column;
+//   - every other surviving wall cell becomes the C34 1x1 corner (t82), and
+//     every surviving foot cell one of C12..C14 (t60..t62).
+// Only placeholder cells are written, so ramp / plateau art is never touched.
+int RandomMapGenerator::TrimCliffPieceForRamp(const MapCell* anchor, int slot)
+{
+    const IsoFootprint& fp = kCliffFootprints[slot - 1];
+    const int ax = static_cast<int16_t>(anchor->MapCoords & 0xFFFF);
+    const int ay = static_cast<int16_t>((uint32_t)anchor->MapCoords >> 16);
+    const int baseLevel = anchor->Level;
+
+    struct CellRef { int x, y, h, level; };
+    std::vector<CellRef> walls;
+    std::vector<CellRef> feet;
+    int zIndex = 0;
+    for (int row = 0; row < fp.h; ++row)
+    {
+        for (int col = 0; col < fp.w; ++col)
+        {
+            if (((fp.mask >> (row * fp.w + col)) & 1ULL) == 0)
+                continue;
+            const int z = fp.z[zIndex++];
+            const int x = ax + col;
+            const int y = ay + row;
+            if (!CellExists(static_cast<int16_t>(x), static_cast<int16_t>(y)))
+                continue;
+            const MapCell* c = CellAt(static_cast<int16_t>(x),
+                                      static_cast<int16_t>(y));
+            if (!IsPlaceholderTile(c))
+                continue;                               // ramp / art: keep it
+            const int newLevel = baseLevel + z;
+            if (z >= 4 && IsCliffWallRiding(x, y, newLevel))
+                continue;                               // the rejected side
+            (z >= 4 ? walls : feet)
+                .push_back(CellRef{ x, y, row * fp.w + col, newLevel });
+        }
+    }
+
+    int written = 0;
+    // Nothing has been stamped yet, so like PlaceIsoTile the wall cells must
+    // also be RAISED to their piece level (anchor L4 + z4 = L8); feet keep the
+    // anchor level.
+    const auto write = [&](int x, int y, int tile, int height, int level)
+    {
+        MapCell* c = CellAt(static_cast<int16_t>(x), static_cast<int16_t>(y));
+        if (c == nullptr || !IsPlaceholderTile(c))
+            return;
+        DiagLog("CLIFF-TRIM slot=%d (%d,%d) -> t%d/h%d L%d",
+                slot, x, y, tile, height, level);
+        c->IsoTileTypeIndex = tile;
+        c->Height = static_cast<uint8_t>(height);
+        c->Level = level;
+        ++written;
+    };
+
+    const int tVStrip   = shoreTileIndex_ + 7;    // C8
+    const int tWallCap  = shoreTileIndex_ + 33;   // C34
+    const int tFlatBase = shoreTileIndex_ + 11;   // C12..C14
+
+    // C8: surviving west column h0 (wall z4) + h2 (foot z0) of a 2x2 wall.
+    if (slot >= 4 && slot <= 7 && baseLevel + 4 >= 7 && baseLevel <= 5)
+    {
+        const auto has = [&](int h) {
+            for (const CellRef& r : walls) if (r.h == h) return true;
+            for (const CellRef& r : feet)  if (r.h == h) return true;
+            return false;
+        };
+        if (has(0) && has(2))
+        {
+            write(ax, ay, tVStrip, 0, baseLevel + 4);
+            write(ax, ay + 1, tVStrip, 1, baseLevel);
+            return written;
+        }
+    }
+
+    for (const CellRef& r : walls)
+        write(r.x, r.y, tWallCap, 0, r.level);
+    for (const CellRef& r : feet)
+        write(r.x, r.y, tFlatBase + (ax + ay + r.h) % 3, 0, r.level);
+    return written;
 }
 
 // ---------------------------------------------------------------------------
@@ -2549,6 +3528,101 @@ bool RandomMapGenerator::IsWaterFamilyTile(const MapCell* cell) const
             return true;
     }
     return false;
+}
+
+// ---------------------------------------------------------------------------
+// IsShoreTile - sub_4865B0 (0x4865B0) - the shore family test alone.
+//
+//   tile in [shorePieces_, shorePieces_ + 42)      game global nIdx_4 @0xABAD28
+//
+// The narrower sibling of IsWaterFamilyTile (sub_4865D0), which is the same
+// range plus the water set and the four waterfall families. Its only consumer
+// in the port is the hill stage's protection pre-mark, sub_5A33F0.
+// ---------------------------------------------------------------------------
+bool RandomMapGenerator::IsShoreTile(const MapCell* cell) const
+{
+    if (cell == nullptr)
+        return false;
+
+    const int tile = cell->IsoTileTypeIndex;
+    return (shorePieces_ >= 0 && tile >= shorePieces_ && tile < shorePieces_ + 42);
+}
+
+// ---------------------------------------------------------------------------
+// IsGreenGroundTile - sub_4867B0 (0x4867B0) - green-ground family test.
+//
+//   tile == dword_AA0E18                    GreenTile: the base green ground
+//                                           tile of the theater
+//   or tile in [dword_AA0748, +16)          ClearToGreenLat: the clear-to-green
+//                                           LAT transition tiles
+//
+// (0x4867b0 reads CellClass +0x38 into v1 and returns exactly that test.)
+//
+// Both globals hold the running tile count of the theater INI [General] keys
+// of the same names - verified in IsometricTileTypeClass::ReadINI: the
+// "GreenTile" ReadInteger result is stored into dword_AA0E18 at 0x545d54, the
+// "ClearToGreenLat" one into dword_AA0748 at 0x545d9f. dword_AA0E18 is the
+// global the IDB names IsoTileTypeIndex_1; it is NOT the CliffSet global -
+// CliffSet lives at dword_AA1020 and is carried here as shoreTileIndex_.
+//
+// This is the Init-regions stage's second seeding / growth gate (sub_58CF90
+// 0x58cfe9, sub_58C800 0x58c882, sub_58E740 0x58e8a9): a cell qualifies when
+// it is water family (sub_4865D0) OR green ground.
+// ---------------------------------------------------------------------------
+bool RandomMapGenerator::IsGreenGroundTile(const MapCell* cell) const
+{
+    if (cell == nullptr)
+        return false;
+
+    const int tile = cell->IsoTileTypeIndex;
+    return tile == greenTileIndex_                                   // 0x4867bd
+        || (tile >= clearToGreenLatIndex_
+            && tile < clearToGreenLatIndex_ + 16);
+}
+
+// ---------------------------------------------------------------------------
+// The four pave-family tile tests of the lateral-corridor builder (sub_58F2C0)
+// and its rectangle predicates.
+//
+//   sub_4866D0  0x4866D0  tile in [dword_ABBEC8, +15)  PavedRoads
+//   sub_4866F0  0x4866F0  tile in [dword_ABBEC4, + 4)  PavedRoadEnds
+//   sub_486650  0x486650  tile in [dword_AA10A4, +14)  MiscPaveTile
+//   sub_486670  0x486670  tile in [dword_ABC2B0, +16)  PaveTile
+//
+// Each global is the running tile total of the theater INI [General] key of the
+// same name (stored by IsometricTileTypeClass::ReadINI at 0x545eda / 0x545ee9 /
+// 0x545d72 / 0x545d63); LoadTheaterTiles fills the four members.
+// ---------------------------------------------------------------------------
+bool RandomMapGenerator::IsPavedRoadTile(const MapCell* cell) const
+{
+    if (cell == nullptr)
+        return false;
+    const int tile = cell->IsoTileTypeIndex;
+    return tile >= pavedRoadsIndex_ && tile < pavedRoadsIndex_ + 15;
+}
+
+bool RandomMapGenerator::IsPavedRoadEndTile(const MapCell* cell) const
+{
+    if (cell == nullptr)
+        return false;
+    const int tile = cell->IsoTileTypeIndex;
+    return tile >= pavedRoadEndsIndex_ && tile < pavedRoadEndsIndex_ + 4;
+}
+
+bool RandomMapGenerator::IsMiscPaveTile(const MapCell* cell) const
+{
+    if (cell == nullptr)
+        return false;
+    const int tile = cell->IsoTileTypeIndex;
+    return tile >= miscPaveTileIndex_ && tile < miscPaveTileIndex_ + 14;
+}
+
+bool RandomMapGenerator::IsPaveTile(const MapCell* cell) const
+{
+    if (cell == nullptr)
+        return false;
+    const int tile = cell->IsoTileTypeIndex;
+    return tile >= paveTileIndex_ && tile < paveTileIndex_ + 16;
 }
 
 // ---------------------------------------------------------------------------
@@ -2640,14 +3714,219 @@ bool RandomMapGenerator::ExpandWaterBody(int genCode, int mode, int centerX,
 }
 
 // ---------------------------------------------------------------------------
+// DecorateWaterTiles - sub_59C630 - water-detail pass over open water.
+//
+// The main flow calls this unconditionally right after the terrain dispatch
+// (sub_598960 @ 0x598b14), so every land type runs it - the 3/4 special-terrain
+// path (river / lake water) included. It walks the diamond in iterator order
+// and, for every plain open-water cell (IsoTileTypeIndex == WaterSet base tile
+// and Height == 0) whose three "forward" neighbours E / S / SE (Neighbours 2 /
+// 4 / 3) are plain water too:
+//
+//   roll n10  = F2I64(rand * 10  * kUnitScale + 1.0)  reject while > 10  -> 1..10
+//   if n10 == 1, or any of the three neighbours was not plain water:
+//       roll n200 = F2I64(rand * 201 * kUnitScale)     reject while > 200 -> 0..200
+//       IsoTileTypeIndex = n200 / 40 + WaterSet + 8    (variants WaterSet+8..+13)
+//   else:
+//       roll n242 = F2I64(rand * 242 * kUnitScale)     reject while > 241 -> 0..241
+//       sub = n242 < 240 ? n242 / 40 : 247 - n242      -> 0..7
+//       PlaceWaterDetailTile(WaterSet + sub, coords, work gen mark, -1)
+//
+// So each plain-water cell costs exactly one RNG draw when the neighbour test
+// sends it straight to the variant branch, two otherwise. Water cells that are
+// not plain (different tile, or Height != 0) are skipped without a draw.
+//
+// The three scale constants are the exact doubles 10 / 201 / 242 * kUnitScale
+// (0x7ED9E8 / 0x7ED9D8 / 0x7ED9E0 - checked byte for byte). The rejection
+// loops never iterate, since each draw tops out exactly at the limit.
+// ---------------------------------------------------------------------------
+void RandomMapGenerator::DecorateWaterTiles()
+{
+    CellIterator it;
+    it.Reset(cellSlots_, size_.mapWidth);
+    while (MapCell* cell = it.Next())
+    {
+        // Plain open water only: WaterSet base tile, flat (Height 0).
+        if (cell->IsoTileTypeIndex != waterTileIndex_ || cell->Height != 0)
+            continue;                                     // 0x59c657
+
+        const MapCell* nE  = GetNeighbourCell(cell, 2);   // 0x59c674
+        const MapCell* nS  = GetNeighbourCell(cell, 4);   // 0x59c67d
+        const MapCell* nSE = GetNeighbourCell(cell, 3);   // 0x59c688
+
+        const bool plain =
+            nE->IsoTileTypeIndex  == waterTileIndex_ && nE->Height  == 0 &&
+            nS->IsoTileTypeIndex  == waterTileIndex_ && nS->Height  == 0 &&
+            nSE->IsoTileTypeIndex == waterTileIndex_ && nSE->Height == 0;
+
+        bool variant = !plain;                            // -> LABEL_22
+        if (plain)
+        {
+            int n10;
+            do
+            {
+                n10 = F2I64((double)(uint32_t)rng_.Next() * 10.0 * kUnitScale
+                            + 1.0);                       // 0x59c6f0
+            }
+            while (n10 > 10);
+            variant = (n10 == 1);                         // 0x59c709
+        }
+
+        if (variant)
+        {
+            int n200;
+            do
+            {
+                n200 = F2I64((double)(uint32_t)rng_.Next()
+                             * 201.0 * kUnitScale);       // 0x59c7b2
+            }
+            while (n200 > 200);
+            cell->IsoTileTypeIndex = n200 / 40 + waterTileIndex_ + 8;  // 0x59c7da
+        }
+        else
+        {
+            int n242;
+            do
+            {
+                n242 = F2I64((double)(uint32_t)rng_.Next()
+                             * 242.0 * kUnitScale);       // 0x59c725
+            }
+            while (n242 > 241);
+            const int sub = (n242 < 240) ? (n242 / 40) : (247 - n242);
+
+            const int packedCoords = cell->MapCoords;
+            const int genCode =
+                WorkAt(packedCoords & 0xFFFF,
+                       (uint32_t)packedCoords >> 16).data[14];  // 0x59c786
+            PlaceWaterDetailTile(waterTileIndex_ + sub, packedCoords, genCode,
+                                 -1);                     // 0x59c795
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// sub_5A6C10 (0x5a6c10 - 0x5a6d6e) - multi-cell tile stamping anchored at an
+// explicit cell. The vanilla walks the tile object's own grid:
+//
+//   tile = Array.Items[tileIndex];
+//   if (tile->GetImage() == nullptr) return;                 // 0x5a6c32
+//   for (row = 0; row < tile->CellsInY; ++row)
+//     for (col = 0; col < tile->CellsInX; ++col)
+//     {
+//         x = anchorX + col, y = anchorY + row;
+//         if (!in diamond) continue;                         // 0x5a6c92 / 0x5a6cb4
+//         frame = image[Height + 4] with Height = col + row * CellsInX;
+//         if (!frame) continue;                              // 0x5a6ce2
+//         cell->Height           = Height;                   // 0x5a6cea
+//         cell->IsoTileTypeIndex = tile->ArrayIndex;         // 0x5a6cf4
+//         if (level != -1)
+//             cell->Level        = level + frame[+0x28] - 4; // 0x5a6d04
+//         cell->SlopeIndex       = frame[+0x2A];             // 0x5a6d0d
+//         work[+56]              = genCode;                  // 0x5a6d3a
+//     }
+//
+// The port tabulates the geometry in place of the tile objects:
+//   CellsInX / CellsInY   -> IsoFootprint::w / h
+//   "frame != null" cells -> IsoFootprint::mask, bit (row * w + col)
+//   frame[+0x28]          -> IsoFootprint::z, indexed by the OCCUPIED-cell
+//                            counter (empty cells contribute no entry)
+//   frame[+0x2A]          -> NOT tabulated. The store below writes 0, which is
+//                            exact for the water-detail pieces this routine
+//                            started with; a cliff piece whose art carries a
+//                            slope would need the value measured first.
+//
+// Two callers stamp through here now, which is why the geometry can no longer
+// be hard-coded to 2x2: DecorateWaterTiles (the eight water detail tiles,
+// waterTileIndex_ + 0..7, all full 2x2 rectangles with Z = 0) and
+// CorrectCliffTiles (CliffSet pieces - width 1 or 2, height up to 3).
+void RandomMapGenerator::PlaceWaterDetailTile(int tileIndex, int packedCoords,
+                                              int genCode, int level)
+{
+    // The eight water-detail pieces (waterTileIndex_ + 0..7) really are plain
+    // 2x2 rectangles with Z = 0 on every cell - the original caller this routine
+    // was written for (DecorateWaterTiles).
+    static const IsoFootprint k2x2Footprint = { 2, 2, 0xFULL };
+
+    // TileSet0025 is BOTH [General] SlopeSetPieces and CliffRamps
+    // (temperatmd.ini: CliffRamps = 25, FileName = RAMP -> ramp01..10): the
+    // multi-cell cliff-ramp pieces every RampBuilder1..7 stamps. Measured
+    // straight out of the TMPs - grid, non-empty sub-cell mask and each
+    // occupied cell's frame[+0x28] z (cell Level = level + z - 4; z runs
+    // 0..4, so an L8 owner fills L4..L8, the whole four-level ramp).
+    //
+    // The previous table hard-coded all ten pieces as a full 2x2 square. That
+    // is only close for ramp07/ramp10 (2x2 with one empty cell); the other
+    // eight are 3x4 / 4x3 with 7 or 10 occupied cells. The wrong walk wrote
+    // Height = col + row*2 against a 3/4-wide TMP, so the frames did not line
+    // up, most stamped cells failed TileCellHasFrame and Recalc washed them to
+    // 0xFFFF - the long white strip hanging off every cliff ramp.
+    static const IsoFootprint kSlopeSetPieceFootprints[10] =
+    {
+        { 3, 4, 0xDFEULL, { 3, 3, 4, 3, 2, 0, 0, 1, 0, 0 } }, // ramp01 .##/###/###/.##
+        { 3, 4, 0x7FBULL, { 3, 3, 2, 3, 4, 1, 0, 0, 0, 0 } }, // ramp02 ##./###/###/##.
+        { 4, 3, 0x6FFULL, { 3, 2, 1, 0, 3, 3, 0, 0, 4, 0 } }, // ramp03 ####/####/.##.
+        { 4, 3, 0xFF6ULL, { 4, 0, 3, 3, 0, 0, 3, 2, 1, 0 } }, // ramp04 .##./####/####
+        { 3, 4, 0xDFEULL, { 0, 0, 0, 0, 1, 4, 3, 2, 3, 3 } }, // ramp05 .##/###/###/.##
+        { 3, 4, 0x27BULL, { 0, 0, 1, 0, 0, 2, 3 } },          // ramp06 ##./###/#../#..
+        { 2, 2, 0x7ULL,  { 3, 4, 3 } },                        // ramp07 ##/#.
+        { 4, 3, 0xFF6ULL, { 0, 4, 0, 0, 3, 3, 0, 1, 2, 3 } }, // ramp08 .##./####/####
+        { 4, 3, 0x23FULL, { 0, 1, 2, 3, 0, 0, 0 } },          // ramp09 ####/##../.#..
+        { 2, 2, 0x7ULL,  { 3, 3, 4 } },                        // ramp10 ##/#.
+    };
+
+    const IsoFootprint* fp = nullptr;
+    if (waterTileIndex_ >= 0 && tileIndex >= waterTileIndex_ &&
+        tileIndex < waterTileIndex_ + 8)
+        fp = &k2x2Footprint;
+    else if (slopeSetPiecesIndex_ >= 0 && tileIndex >= slopeSetPiecesIndex_ &&
+             tileIndex < slopeSetPiecesIndex_ + 10)
+        fp = &kSlopeSetPieceFootprints[tileIndex - slopeSetPiecesIndex_];
+    else
+        fp = FindFamilyFootprint(tileIndex, shorePieces_, shoreTileIndex_,
+                                 waterCliffsIndex_, destroyableCliffsIndex_,
+                                 waterFamily4Base_);
+    if (fp == nullptr)
+        return;                                       // no image: 0x5a6c32
+
+    const int anchorX = static_cast<int16_t>(packedCoords & 0xFFFF);
+    const int anchorY = static_cast<int16_t>((uint32_t)packedCoords >> 16);
+    int zIndex = 0;                                   // occupied-cell counter
+
+    for (int row = 0; row < fp->h; ++row)             // CellsInY
+    {
+        for (int col = 0; col < fp->w; ++col)         // CellsInX
+        {
+            if (((fp->mask >> (row * fp->w + col)) & 1ULL) == 0)
+                continue;                             // frame == null: 0x5a6ce2
+            const int z = fp->z[zIndex];
+            ++zIndex;
+
+            const int16_t x = static_cast<int16_t>(anchorX + col);
+            const int16_t y = static_cast<int16_t>(anchorY + row);
+            if (!CellExists(x, y))                    // 0x5a6cb4
+                continue;
+
+            MapCell* cell = CellAt(x, y);
+            cell->Height           = col + row * fp->w;   // 0x5a6cea
+            cell->IsoTileTypeIndex = tileIndex;           // 0x5a6cf4
+            if (level != -1)                              // 0x5a6cfa
+                cell->Level = level + z - 4;              // + frame[+0x28]
+            cell->SlopeIndex       = 0;                   // frame[+0x2A]: not tabulated
+            WorkAt(x, y).data[14] = genCode;              // 0x5a6d3a
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // LoadTheaterTiles - the [General] tile-range snapshots of
 // IsometricTileTypeClass::ReadINI (0x545150).
 //
 // ReadINI walks the theater's tile sets keeping a running global tile index
 // and snapshots that index into a family global whenever it reaches the value
 // of the matching [General] key, e.g.
-//     0x545xxx: v104 = ReadInteger("General", "CliffSet", -1);
-//               if (v20 == v104) IsoTileTypeIndex_0 = IsoTileTypeIndex;
+//     0x545d4b: if (section == <"CliffSet" key>)         dword_AA1020 = running;
+//     0x545d52: if (section == <"GreenTile" key>)        dword_AA0E18 = running;
+//     0x545d9d: if (section == <"ClearToGreenLat" key>)  dword_AA0748 = running;
 //
 // IMPORTANT: the [General] values are TileSet SECTION NUMBERS, not tile
 // indices - CliffSet = 10 means "[TileSet0010]", and the global that ReadINI
@@ -2656,6 +3935,10 @@ bool RandomMapGenerator::ExpandWaterBody(int genCode, int mode, int centerX,
 //   ShorePieces = 12  -> [TileSet0012] 'Shore Pieces' -> 89
 //   WaterSet    = 21  -> [TileSet0021] 'Water'        -> 314
 //   CliffSet    = 10  -> [TileSet0010] 'Cliff Set'    -> 49   (40 wide)
+//   GreenTile         -> the green ground set (dword_AA0E18, the IDB names it
+//                        IsoTileTypeIndex_1)      (sub_4867B0's first branch)
+//   ClearToGreenLat   -> the clear-to-green LAT set, 16 wide
+//                        (sub_4867B0's second branch)
 //   WaterCliffs = 15  -> [TileSet0015] 'Cliff/Water pieces' -> 148 (28 wide)
 //   DestroyableCliffs = 56 -> [TileSet0056] 'Destroyable Cliffs' -> 572
 //                       (snow: 61 -> 694; 2 wide)
@@ -2673,6 +3956,7 @@ bool RandomMapGenerator::ExpandWaterBody(int genCode, int mode, int centerX,
 // The theater INI sits next to the executable like RMGMD.INI. Vanilla builds
 // the name as "%sMD.INI" from the theater name, so theater 0 -> TEMPERATMD.INI
 // and theater 1 -> SNOWMD.INI. A missing key or file leaves -1.
+// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 void RandomMapGenerator::LoadTheaterTiles(int theater)
 {
@@ -2696,6 +3980,10 @@ void RandomMapGenerator::LoadTheaterTiles(int theater)
         "General", "WaterSet", (UINT)-1, path);
     const int cliffSection = (int)GetPrivateProfileIntA(
         "General", "CliffSet", (UINT)-1, path);
+    const int greenTileSection = (int)GetPrivateProfileIntA(
+        "General", "GreenTile", (UINT)-1, path);
+    const int clearToGreenLatSection = (int)GetPrivateProfileIntA(
+        "General", "ClearToGreenLat", (UINT)-1, path);
     const int eastSection = (int)GetPrivateProfileIntA(
         "General", "WaterfallEast", (UINT)-1, path);
     const int westSection = (int)GetPrivateProfileIntA(
@@ -2716,6 +4004,75 @@ void RandomMapGenerator::LoadTheaterTiles(int theater)
         "General", "BridgeSet", (UINT)-1, path);
     const int woodBridgeSetSection = (int)GetPrivateProfileIntA(
         "General", "WoodBridgeSet", (UINT)-1, path);
+    const int rampBaseSection = (int)GetPrivateProfileIntA(
+        "General", "RampBase", (UINT)-1, path);
+    const int slopeSetPiecesSection = (int)GetPrivateProfileIntA(
+        "General", "SlopeSetPieces", (UINT)-1, path);
+
+    // The rest of the tile-family keys. SetupLAT (sub_47CA80) is the consumer;
+    // the ones it does not touch are still read so the table matches ReadINI's.
+    const int rampSmoothSection = (int)GetPrivateProfileIntA(
+        "General", "RampSmooth", (UINT)-1, path);
+    const int mmRampBaseSection = (int)GetPrivateProfileIntA(
+        "General", "MMRampBase", (UINT)-1, path);
+    const int clearTileSection = (int)GetPrivateProfileIntA(
+        "General", "ClearTile", (UINT)-1, path);
+    const int roughTileSection = (int)GetPrivateProfileIntA(
+        "General", "RoughTile", (UINT)-1, path);
+    const int sandTileSection = (int)GetPrivateProfileIntA(
+        "General", "SandTile", (UINT)-1, path);
+    const int clearToRoughLatSection = (int)GetPrivateProfileIntA(
+        "General", "ClearToRoughLat", (UINT)-1, path);
+    const int clearToSandLatSection = (int)GetPrivateProfileIntA(
+        "General", "ClearToSandLat", (UINT)-1, path);
+    const int clearToPaveLatSection = (int)GetPrivateProfileIntA(
+        "General", "ClearToPaveLat", (UINT)-1, path);
+    const int heightBaseSection = (int)GetPrivateProfileIntA(
+        "General", "HeightBase", (UINT)-1, path);
+    const int blackTileSection = (int)GetPrivateProfileIntA(
+        "General", "BlackTile", (UINT)-1, path);
+    const int slopeSetPieces2Section = (int)GetPrivateProfileIntA(
+        "General", "SlopeSetPieces2", (UINT)-1, path);
+    const int monorailSlopesSection = (int)GetPrivateProfileIntA(
+        "General", "MonorailSlopes", (UINT)-1, path);
+    const int tunnelsSection = (int)GetPrivateProfileIntA(
+        "General", "Tunnels", (UINT)-1, path);
+    const int trackTunnelsSection = (int)GetPrivateProfileIntA(
+        "General", "TrackTunnels", (UINT)-1, path);
+    const int dirtTunnelsSection = (int)GetPrivateProfileIntA(
+        "General", "DirtTunnels", (UINT)-1, path);
+    const int dirtTrackTunnelsSection = (int)GetPrivateProfileIntA(
+        "General", "DirtTrackTunnels", (UINT)-1, path);
+    const int mediansSection = (int)GetPrivateProfileIntA(
+        "General", "Medians", (UINT)-1, path);
+    const int roughGroundSection = (int)GetPrivateProfileIntA(
+        "General", "RoughGround", (UINT)-1, path);
+    const int dirtRoadJunctionSection = (int)GetPrivateProfileIntA(
+        "General", "DirtRoadJunction", (UINT)-1, path);
+    const int dirtRoadCurveSection = (int)GetPrivateProfileIntA(
+        "General", "DirtRoadCurve", (UINT)-1, path);
+    const int dirtRoadStraightSection = (int)GetPrivateProfileIntA(
+        "General", "DirtRoadStraight", (UINT)-1, path);
+    const int pavedRoadSlopesSection = (int)GetPrivateProfileIntA(
+        "General", "PavedRoadSlopes", (UINT)-1, path);
+    const int dirtRoadSlopesSection = (int)GetPrivateProfileIntA(
+        "General", "DirtRoadSlopes", (UINT)-1, path);
+    const int rocksSection = (int)GetPrivateProfileIntA(
+        "General", "Rocks", (UINT)-1, path);
+    const int waterBridgeSection = (int)GetPrivateProfileIntA(
+        "General", "WaterBridge", (UINT)-1, path);
+    // The four pave families sub_4866D0 / sub_4866F0 / sub_486650 / sub_486670
+    // test and sub_58F2C0 stamps with. ReadINI stores their running totals into
+    // dword_ABBEC8 / dword_ABBEC4 / dword_AA10A4 / dword_ABC2B0 (0x545eda,
+    // 0x545ee9, 0x545d72, 0x545d63).
+    const int pavedRoadsSection = (int)GetPrivateProfileIntA(
+        "General", "PavedRoads", (UINT)-1, path);
+    const int pavedRoadEndsSection = (int)GetPrivateProfileIntA(
+        "General", "PavedRoadEnds", (UINT)-1, path);
+    const int miscPaveTileSection = (int)GetPrivateProfileIntA(
+        "General", "MiscPaveTile", (UINT)-1, path);
+    const int paveTileSection = (int)GetPrivateProfileIntA(
+        "General", "PaveTile", (UINT)-1, path);
 
     // Collect every [TileSetNNNN] section with its TilesInSet.
     std::vector<std::pair<int, int> > sets;
@@ -2734,6 +4091,51 @@ void RandomMapGenerator::LoadTheaterTiles(int theater)
         }
     }
     std::sort(sets.begin(), sets.end());
+
+    // ---- per-tile Morphable flag -----------------------------------------
+    // The INI documents the key as "Can this tile set be modified using the
+    // raise/lower ground function?" - exactly what the hill stage does, so it
+    // only levels cells whose tile set is morphable. Absolute tile indices
+    // follow the same section order the RunningTotal bases below use.
+    //
+    // The vanilla reads it with CCINIClass::ReadBool(ini, section, "Morphable",
+    // FALSE):
+    //   0x546124  xor  ebx, ebx          <- the default it pushes (0x54612d)
+    //   0x54613f  call CCINIClass::ReadBool
+    // and ReadBool (0x5295F0) decides on the uppercased FIRST character of the
+    // value: '0' / 'F' / 'N' -> false, '1' / 'T' / 'Y' -> true, and ANY other
+    // character - like a missing value - falls back to the default, false
+    // (0x529787 switch, `default: return a4`). So the port must not accept
+    // arbitrary numbers, and must accept a bare "y" / "t".
+    {
+        int total = 0;
+        for (size_t i = 0; i < sets.size(); ++i)
+            total += sets[i].second;
+
+        tileMorphable_.assign(static_cast<size_t>(total), 0);
+
+        int running = 0;
+        for (size_t i = 0; i < sets.size(); ++i)
+        {
+            char section[32];
+            sprintf_s(section, "TileSet%04d", sets[i].first);
+            char value[16] = "";
+            GetPrivateProfileStringA(section, "Morphable", "",
+                                     value, sizeof(value), path);
+
+            const char lead = (value[0] != '\0')
+                            ? static_cast<char>(toupper(
+                                  static_cast<unsigned char>(value[0])))
+                            : '\0';
+            if (lead == '1' || lead == 'T' || lead == 'Y')
+            {
+                for (int k = 0; k < sets[i].second; ++k)
+                    tileMorphable_[running + k] = 1;
+            }
+
+            running += sets[i].second;
+        }
+    }
 
     // Running tile count in section order, up to (excluding) `section`.
     struct RunningTotal
@@ -2756,6 +4158,39 @@ void RandomMapGenerator::LoadTheaterTiles(int theater)
     shorePieces_            = RunningTotal::Start(sets, shoreSection);
     waterTileIndex_         = RunningTotal::Start(sets, waterSection);
     shoreTileIndex_         = RunningTotal::Start(sets, cliffSection);
+    greenTileIndex_         = RunningTotal::Start(sets, greenTileSection);
+    rampBaseIndex_          = RunningTotal::Start(sets, rampBaseSection);
+    slopeSetPiecesIndex_    = RunningTotal::Start(sets, slopeSetPiecesSection);
+    rampSmoothIndex_        = RunningTotal::Start(sets, rampSmoothSection);
+    mmRampBaseIndex_        = RunningTotal::Start(sets, mmRampBaseSection);
+    clearTileIndex_         = RunningTotal::Start(sets, clearTileSection);
+    roughTileIndex_         = RunningTotal::Start(sets, roughTileSection);
+    sandTileIndex_          = RunningTotal::Start(sets, sandTileSection);
+    clearToRoughLatIndex_   = RunningTotal::Start(sets, clearToRoughLatSection);
+    clearToSandLatIndex_    = RunningTotal::Start(sets, clearToSandLatSection);
+    clearToPaveLatIndex_    = RunningTotal::Start(sets, clearToPaveLatSection);
+    heightBaseIndex_        = RunningTotal::Start(sets, heightBaseSection);
+    blackTileIndex_         = RunningTotal::Start(sets, blackTileSection);
+    slopeSetPieces2Index_   = RunningTotal::Start(sets, slopeSetPieces2Section);
+    monorailSlopesIndex_    = RunningTotal::Start(sets, monorailSlopesSection);
+    tunnelsIndex_           = RunningTotal::Start(sets, tunnelsSection);
+    trackTunnelsIndex_      = RunningTotal::Start(sets, trackTunnelsSection);
+    dirtTunnelsIndex_       = RunningTotal::Start(sets, dirtTunnelsSection);
+    dirtTrackTunnelsIndex_  = RunningTotal::Start(sets, dirtTrackTunnelsSection);
+    mediansIndex_           = RunningTotal::Start(sets, mediansSection);
+    roughGroundIndex_       = RunningTotal::Start(sets, roughGroundSection);
+    dirtRoadJunctionIndex_  = RunningTotal::Start(sets, dirtRoadJunctionSection);
+    dirtRoadCurveIndex_     = RunningTotal::Start(sets, dirtRoadCurveSection);
+    dirtRoadStraightIndex_  = RunningTotal::Start(sets, dirtRoadStraightSection);
+    pavedRoadSlopesIndex_   = RunningTotal::Start(sets, pavedRoadSlopesSection);
+    dirtRoadSlopesIndex_    = RunningTotal::Start(sets, dirtRoadSlopesSection);
+    rocksIndex_             = RunningTotal::Start(sets, rocksSection);
+    waterBridgeIndex_       = RunningTotal::Start(sets, waterBridgeSection);
+    pavedRoadsIndex_        = RunningTotal::Start(sets, pavedRoadsSection);
+    pavedRoadEndsIndex_     = RunningTotal::Start(sets, pavedRoadEndsSection);
+    miscPaveTileIndex_      = RunningTotal::Start(sets, miscPaveTileSection);
+    paveTileIndex_          = RunningTotal::Start(sets, paveTileSection);
+    clearToGreenLatIndex_   = RunningTotal::Start(sets, clearToGreenLatSection);
     waterCliffsIndex_       = RunningTotal::Start(sets, waterCliffsSection);
     destroyableCliffsIndex_ = RunningTotal::Start(sets, destroyableCliffsSection);
     cliffRampsIndex_        = RunningTotal::Start(sets, cliffRampsSection);

@@ -1,11 +1,59 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "MapGen.h"
+#include "MapGenFastSqrt.h"
 
 #include <cstring>
 #include <cstdlib>
+#include <cstdarg>
 #include <cmath>
 #include <cwchar>
+#include <cstdio>
 #include <windows.h>
+#include <strsafe.h>
+
+// ============================================================================
+// [TEMP DIAG] DiagLog - append one ASCII line to Mapoutput\rmg_diag.log.
+// First call in the process truncates the file; GenerateMapBody also prints a
+// banner so several GUI runs in one process stay separable.
+// ============================================================================
+void RandomMapGenerator::DiagLog(const char* fmt, ...)
+{
+    wchar_t path[MAX_PATH] = {};
+    if (GetModuleFileNameW(nullptr, path, MAX_PATH) == 0)
+        return;
+    wchar_t* slash = wcsrchr(path, L'\\');
+    if (slash == nullptr)
+        return;
+    static const wchar_t kRel[] = L"..\\..\\Mapoutput\\rmg_diag.log";
+    if ((slash - path) + 1 + static_cast<int>(wcslen(kRel)) >= MAX_PATH)
+        return;
+    wcscpy_s(slash + 1, MAX_PATH - static_cast<int>(slash + 1 - path), kRel);
+
+    // Make sure Mapoutput exists (the UI creates it too, but be independent).
+    wchar_t dir[MAX_PATH] = {};
+    StringCchCopyW(dir, MAX_PATH, path);
+    wchar_t* dslash = wcsrchr(dir, L'\\');
+    if (dslash)
+    {
+        *dslash = 0;
+        CreateDirectoryW(dir, nullptr);
+    }
+
+    static bool first = true;
+    FILE* fp = nullptr;
+    if (_wfopen_s(&fp, path, first ? L"w" : L"a") != 0 || fp == nullptr)
+        return;
+    first = false;
+
+    char buf[600];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    fputs(buf, fp);
+    fputc('\n', fp);
+    fclose(fp);
+}
 
 // ============================================================================
 // Size interpolation tables (players 2-8, index 0-6)
@@ -248,15 +296,50 @@ RandomMapGenerator::RandomMapGenerator()
     , genCode_(0)
     , waterTileIndex_(-1)
     , shoreTileIndex_(-1)
+    , greenTileIndex_(-1)
+    , clearToGreenLatIndex_(-1)
     , waterCliffsIndex_(-1)
     , destroyableCliffsIndex_(-1)
     , cliffRampsIndex_(-1)
     , waterCavesIndex_(-1)
     , bridgeSetIndex_(-1)
     , woodBridgeSetIndex_(-1)
+    , rampBaseIndex_(-1)
+    , slopeSetPiecesIndex_(-1)
+    , pavedRoadsIndex_(-1)
+    , pavedRoadEndsIndex_(-1)
+    , miscPaveTileIndex_(-1)
+    , paveTileIndex_(-1)
     , waterAmount_(0)
     , shorePieces_(-1)
+    , rampSmoothIndex_(-1)
+    , mmRampBaseIndex_(-1)
+    , clearTileIndex_(-1)
+    , roughTileIndex_(-1)
+    , sandTileIndex_(-1)
+    , clearToRoughLatIndex_(-1)
+    , clearToSandLatIndex_(-1)
+    , clearToPaveLatIndex_(-1)
+    , heightBaseIndex_(-1)
+    , blackTileIndex_(-1)
+    , slopeSetPieces2Index_(-1)
+    , monorailSlopesIndex_(-1)
+    , tunnelsIndex_(-1)
+    , trackTunnelsIndex_(-1)
+    , dirtTunnelsIndex_(-1)
+    , dirtTrackTunnelsIndex_(-1)
+    , mediansIndex_(-1)
+    , roughGroundIndex_(-1)
+    , dirtRoadJunctionIndex_(-1)
+    , dirtRoadCurveIndex_(-1)
+    , dirtRoadStraightIndex_(-1)
+    , pavedRoadSlopesIndex_(-1)
+    , dirtRoadSlopesIndex_(-1)
+    , rocksIndex_(-1)
+    , waterBridgeIndex_(-1)
+    , cliffBackImpassability_(-1)
     , currentBuildingType_(0)
+    , regionIdCounter_(0)
 {
     std::memset(&config_, 0, sizeof(config_));
     std::memset(&size_, 0, sizeof(size_));
@@ -265,6 +348,12 @@ RandomMapGenerator::RandomMapGenerator()
     for (int i = 0; i < 4; ++i)
         waterFamily4Base_[i] = -1;
     settings_.SetDefaults();
+
+    // The progress ladder starts idle: no sink (Done clears it again) and the
+    // slot-0 percentage at 0, the state sub_643C50(0, 0.0) leaves behind.
+    progressSink_ = nullptr;
+    progressContext_ = nullptr;
+    progressPercent_ = 0;
 }
 
 RandomMapGenerator::~RandomMapGenerator()
@@ -379,7 +468,36 @@ void RandomMapGenerator::InitCells()
 void RandomMapGenerator::InitWorkArray()
 {
     delete[] workCells_;
-    workCells_ = new WorkCell[size_.workSide * size_.workSide];
+    const int workCount = size_.workSide * size_.workSide;
+    workCells_ = new WorkCell[workCount];
+
+    // The two parallel cell-attribute arrays MouseClass::Instance carries
+    // (indexed through sub_56D3F0 = our PassabilityIndex) share the work
+    // array's shape. Vanilla allocates them together with the map; the
+    // Recalculating-cell-attributes stage is the first to write them.
+    //
+    // The passability byte starts at OutsideMap (7), NOT 0. Every slot outside
+    // the diamond keeps that value - RecalculateCellAttributes only walks the
+    // diamond - and the zone rebuild of sub_56C510 relies on it: its walk starts
+    // at the array's first slot and treats "byte 0 == 7" as the only stop
+    // condition, so an outside slot reading 0 lets FillZoneFromRow start on the
+    // array's first row and walk its north pass off the front of the buffer.
+    levelAndPassability_.assign(static_cast<size_t>(workCount),
+                                CellLevelPassability{
+                                    static_cast<uint8_t>(PassabilityType_OutsideMap),
+                                    0, 0 });
+    lastRecordedZone_ = 0;
+    for (int i = 0; i < 256; ++i)
+        zoneConnections_[i].clear();
+    passabilityCopy_.assign(static_cast<size_t>(workCount), 0);
+    levelAndPassability2_.assign(static_cast<size_t>(workCount), 0);
+
+    // The starting-point ledger. The vanilla's ScenarioClass::Waypoints is a
+    // 702-entry array that the scenario load zeroes; nothing writes it before
+    // the starting-point stage, so an all-zero array is the same starting state.
+    waypoints_.assign(702, CellStruct{ 0, 0 });
+    startingPoints_.clear();
+    startingPointCount_ = 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -419,13 +537,19 @@ void RandomMapGenerator::FillWorkCoords()
 // ---------------------------------------------------------------------------
 bool RandomMapGenerator::GenerateMapBody(const MapGenConfig& cfg)
 {
+    DiagLog("==== MAP BODY START ====");
     config_ = cfg;
 
     // Water amount (this[19]): rolled by the caller, same as vanilla rolls
     // it in the dialog layer (sub_597260) before generation starts.
     waterAmount_ = cfg.waterAmount;
 
-    rng_.Seed(cfg.randomSeed);
+    // The map's own Randomizer is seeded with the CONSTANT 0 in the vanilla
+    // (0x58b770: `push 0; mov ecx, offset dword_ABE890; call sub_65C6D0`).
+    // The UI seed box keeps that default (mapRngSeed == 0); a non-zero value is
+    // a debug override that re-sequences the whole terrain body.
+    (void)cfg.randomSeed;
+    rng_.Seed(cfg.mapRngSeed);
 
     ReInitMapData();
 
@@ -436,6 +560,16 @@ bool RandomMapGenerator::GenerateMapBody(const MapGenConfig& cfg)
     baseLevel_ = 4;
     usedWaterCells_ = 0;    // RMG this[193]: per-map river/lake budget counter
     LoadTheaterTiles(cfg.theater);   // IsometricTileTypeClass::ReadINI [General]
+    // The data the "Recalculating cell attributes" stage reads. LoadTileCellAttrs
+    // needs the tile ranges LoadTheaterTiles just produced; the other three come
+    // from the rules INI and mirror the engine's start-up loads.
+    LoadTileCellAttrs(cfg.theater);
+    LoadOverlayTypes();              // OverlayTypeClass::LoadFromINI
+    LoadGroundTypes();               // GroundType::Array
+    LoadTiberiums();                 // TiberiumClass::LoadFromINI
+    LoadNeutralTechBuildings();      // RulesClass::NeutralTechBuildings + art
+    LoadMultiplayerHouses();         // rules [Countries] for the .yrm [Houses]
+
     InitCells();
     InitWorkArray();
     FillWorkCoords();
@@ -460,7 +594,11 @@ bool RandomMapGenerator::GenerateMapBody(const MapGenConfig& cfg)
 // LandType 3/4 (Inland/Mountainous) never reach sub_59A6C0 in vanilla
 // (sub_598960 routes them to sub_59C580) and fall through, mirrored here.
 //
-// Segments 3-6 of sub_59A6C0 are not implemented.
+// Segments 3-6 close the terrain stage:
+//   3 (0x59a722) fill single-cell water holes;
+//   4 (0x59a788) whole-map shore pass sub_57A0C0(0, 0);
+//   5 (0x59a794) reset both work marks to -1, drop the island list;
+//   6 (0x59a884) green the bare land that touches a shore tile.
 // ---------------------------------------------------------------------------
 void RandomMapGenerator::GenerateTerrain()
 {
@@ -484,6 +622,67 @@ void RandomMapGenerator::GenerateTerrain()
         break;
     default:
         break;
+    }
+
+    // Segment 3 (0x59a722 - 0x59a770): a water cell whose four orthogonal
+    // neighbours all carry no real tile is a one-cell hole - make it land.
+    CellIterator holeIt;
+    holeIt.Reset(cellSlots_, size_.mapWidth);
+    while (MapCell* cell = holeIt.Next())
+    {
+        if (cell->IsoTileTypeIndex != waterTileIndex_)            // 0x59a741
+            continue;
+        bool allPlaceholder = true;                              // 0x59a743
+        for (int facing = 0; facing < 8; facing += 2)            // 0x59a745
+        {
+            if (!IsPlaceholderTile(GetNeighbourCell(cell, facing)))    // 0x59a751
+            {
+                allPlaceholder = false;
+                break;
+            }
+        }
+        if (allPlaceholder)
+            cell->IsoTileTypeIndex = 0;                          // 0x59a768
+    }
+
+    // Segment 4 (0x59a788): the whole-map shore pass. genCode 0 matches every
+    // cell, so this is what actually paints the coastline of the land grown
+    // above. GrowPatch's own sub_57A0C0(genCode, 1) call is followed by a
+    // reclaim sweep (0x59c449) that turns those temporary shore tiles back
+    // into bare land on purpose, so the shores have to be repainted here.
+    SmoothWaterBody(0, 0);                                       // sub_57A0C0(0, 0)
+
+    // Segment 5 (0x59a794 - 0x59a7c0): reset both work marks over the whole
+    // work grid. 0x59a7cc - 0x59a86a then frees the island list hanging off
+    // dword_ABDF94 and clears dword_ABED14; that list is only produced by the
+    // archipelago generator (sub_59AD10), which is not ported, so there is
+    // nothing to free here.
+    if (workCells_ != nullptr)                                   // 0x59a794
+    {
+        const int workCellCount = size_.workSide * size_.workSide;    // 0x59a79c
+        for (int idx = 0; idx < workCellCount; ++idx)            // 0x59a7a3
+        {
+            workCells_[idx].data[14] = -1;                       // +56, 0x59a7ae
+            workCells_[idx].data[15] = -1;                       // +60, 0x59a7b8
+        }
+    }
+
+    // Segment 6 (0x59a884 - 0x59a8db): every cell carrying a shore tile that
+    // still has bare neighbours stamps those neighbours with the green ground
+    // tile, so the land behind the shore is not left as a placeholder.
+    CellIterator greenIt;
+    greenIt.Reset(cellSlots_, size_.mapWidth);
+    while (MapCell* cell = greenIt.Next())
+    {
+        const int tile = cell->IsoTileTypeIndex;
+        if (tile < shorePieces_ || tile >= shorePieces_ + 42)    // 0x59a89b
+            continue;
+        for (int facing = 0; facing < 8; facing += 2)            // 0x59a8a4
+        {
+            MapCell* neighbour = GetNeighbourCell(cell, facing);     // 0x59a8ae
+            if (IsPlaceholderTile(neighbour))                    // 0x59a8b2
+                neighbour->IsoTileTypeIndex = greenTileIndex_;   // 0x59a8c0
+        }
     }
 }
 
@@ -510,46 +709,935 @@ void RandomMapGenerator::ClearWorkOccupancy()
     }
 }
 
+// The [Map] LocalSize offsets - VisibleRect.X / VisibleRect.Y - that the
+// VisibleRect-derived bounds use (same pair MapGenStartpoint.cpp and
+// MapGenMakingSub.cpp carry; W' / H' are size_.width / size_.height).
+static const int kVisibleOffsetX = 2;
+static const int kVisibleOffsetY = 5;
+
 // ---------------------------------------------------------------------------
-// Land type generators - stubs, bodies pending
+// Land type generators - all three implemented.
 // ---------------------------------------------------------------------------
 
-// sub_59AD10 (Archipelago): split VisibleRect into blocks via sub_59A8F0,
-// per block: seed = block center (diamond coords), GrowPatch with
-// step 0.25 / mode 0 / rect bounds, retry <= 10, then advance block.
+// ---------------------------------------------------------------------------
+// GenerateArchipelago (sub_59AD10) - LandType 0 "archipelago".
+//
+// The visible rectangle is carved into a ragged grid of rectangles
+// (sub_59A8F0), then every rectangle grows one organic island from its own
+// diamond centre, so the map ends up as a scatter of islands instead of one
+// mass. The block count is playerCount + rand(1 .. max(playerCount/2, 2)), so
+// bigger matches get more islands.
+//
+//   0x59ad37  this[194] = 1                        ; genCode_ = 1
+//   0x59ad3d  span = max(this[20] / 2, 2)          ; this[20] = player count
+//   0x59ad5b  extra = F2I64(Random()*span + 1)     ; 1 .. span
+//   0x59ad6f  sub_59A8F0(blocks, extra + playerCount, VisibleRect)
+//   0x59ad74  ClearWorkOccupancy()                 ; work data[15] = 0
+//   0x59ad9c  for each block rect:
+//               area   = F2I64((Random()*0.05 + 0.45) * 2*W*H)   ; ~90-100% of W*H
+//               centre = block centre in diamond coords (seed == centre)
+//               do {                                             ; <= 10 retries
+//                   grow = GrowPatch(area, &rect, centre, 1, centre, 0.25, 0)
+//                   if (!grow) ++genCode_
+//               } while (!grow)
+//
+// Unlike the continent types, GrowPatch gets step 0.25 / priority mode 0, and
+// the bounds are the block's own visible-rect rect in ellipse mode (1).
+// ---------------------------------------------------------------------------
 void RandomMapGenerator::GenerateArchipelago()
 {
-    // TODO: replicate sub_59AD10 (0x59AD10)
+    genCode_ = 1;                                       // 0x59ad37
+
+    // Block count: playerCount + rand(1 .. max(playerCount/2, 2)).
+    int span = config_.playerCount / 2;                 // 0x59ad3d
+    if (span < 2)
+        span = 2;                                       // 0x59ad4a
+    const int extra = rng_.RandomFloatRange(1, span);   // 0x59ad5b
+
+    // The visible rect: same origin/size the other land types use.
+    const MapRectTag visible =                          // v26
+    {
+        kVisibleOffsetX,
+        kVisibleOffsetY,
+        size_.width,                                    // VisibleRect.Width
+        size_.height                                    // VisibleRect.Height
+    };
+
+    std::vector<MapRectTag> blocks;
+    SplitVisibleRectIntoBlocks(blocks, extra + config_.playerCount,  // 0x59ad6f
+                               visible);
+
+    ClearWorkOccupancy();                               // 0x59ad74
+
+    // Grow one organic island per block, in the order sub_59A8F0 emitted them.
+    for (size_t b = 0; b < blocks.size(); ++b)          // 0x59ad9c
+    {
+        const MapRectTag rect = blocks[b];              // v22..v25
+
+        // Island budget: 45%-50% of twice the rect area, i.e. ~90%-100% of W*H.
+        const int area = F2I64(                         // 0x59adcb
+            (rng_.Unit() * 0.05 + 0.45)
+            * (2.0 * rect.Width * rect.Height));        // v19
+
+        // Block centre in diamond coords; both the seed and GrowPatch's
+        // directional-priority origin (arg 5) sit on it.
+        const int centreX =                             // 0x59add6
+            rect.X + rect.Width / 2 + rect.Height / 2 + rect.Y + 1;
+        const int centreY =                             // 0x59adcf
+            rect.Y + size_.mapWidth + rect.Height / 2 - rect.Width / 2 - rect.X;
+        const int centrePacked = centreX | (centreY << 16);
+
+        // Up to 10 tries per block; every failed grow burns a generation code.
+        int grown = 0;                                  // v13
+        for (int attempt = 0; attempt < 10; ++attempt)  // n10_1
+        {
+            grown = GrowPatch(area, &rect, centrePacked, // 0x59ade4
+                              1, centrePacked, 0.25, 0);
+            if (grown)
+                break;
+            ++genCode_;                                 // 0x59adeb
+        }
+    }
 }
 
-// sub_59AFA0 (Continent): single ellipse = VisibleRect inset by 1,
-// seed starts at map center, then nearest unoccupied cell to center;
-// GrowPatch with step 0.75 / mode 1 / ellipse bounds, cap 100 patches.
+// ---------------------------------------------------------------------------
+// Block-grid split for GenerateArchipelago (sub_59A8F0 @ 0x59A8F0).
+//
+// Cuts `rect` (the visible rectangle) into exactly `count` rectangles packed
+// in a ragged grid, appended to `blocks` in group order.
+//
+//   root = floor(sqrt(count))                                    ; v4 / v31
+//   a    = root, or root+1 when count is not a perfect square     ; v5 / v26
+//   b    = a when root*a < count, else root                       ; v6 / v23
+//
+// The grid is b groups of a cells, one output rect per cell. To hit `count`
+// exactly, (a*b - count) randomly chosen groups are shortened to root (= a-1)
+// cells (v8); a shortened group is nudged half a cell so its gap is centred.
+//
+// A coin flip picks which axis is the fine one:
+//   * rand >= 0.5 : b rows, each up to a cells wide; rect = W/a x H/b,
+//                   cells step in X, rows step in Y, X resets per row.
+//   * rand <  0.5 : b columns, each up to a cells tall; rect = W/b x H/a,
+//                   cells step in Y, columns step in X, Y resets per column.
+//
+// Every emitted rect is inset by 2 cells each side: {X+2, Y+2, w-4, h-4}.
+// ---------------------------------------------------------------------------
+void RandomMapGenerator::SplitVisibleRectIntoBlocks(std::vector<MapRectTag>& blocks,
+                                                    int count,
+                                                    const MapRectTag& rect)
+{
+    if (count <= 0)
+        return;
+
+    const int root = static_cast<int>(std::sqrt(static_cast<double>(count)));
+    const int a = (root * root == count) ? root : root + 1;
+    const int b = (root * a < count) ? a : root;
+
+    // Coin flip: fine split on X (rows) or on Y (columns).
+    const bool wide = (rng_.Unit() >= 0.5);
+
+    // One output rect's size and the two step sizes used while walking the
+    // grid: inside a group, and from one group to the next.
+    int blockW;         // v24
+    int blockH;         // low dword of v25
+    int innerStepX;     // HIDWORD(v25)
+    int innerStepY;     // v27
+    int groupStepX;     // v29
+    int groupStepY;     // v30
+    if (wide)
+    {
+        blockW = rect.Width / a;
+        blockH = rect.Height / b;
+        innerStepX = blockW;
+        innerStepY = 0;
+        groupStepX = 0;
+        groupStepY = blockH;
+    }
+    else
+    {
+        blockW = rect.Width / b;
+        blockH = rect.Height / a;
+        innerStepX = 0;
+        innerStepY = blockH;
+        groupStepX = blockW;
+        groupStepY = 0;
+    }
+
+    // b groups of a cells; shorten (a*b - count) random groups to root cells.
+    std::vector<int> perGroup(static_cast<size_t>(b), a);       // v44
+    std::vector<int> pool(static_cast<size_t>(b));              // Block
+    for (int i = 0; i < b; ++i)
+        pool[static_cast<size_t>(i)] = i;
+
+    const int shortGroups = a * b - count;                      // v8
+    for (int s = 0; s < shortGroups; ++s)
+    {
+        const int pick = rng_.RandomFloatRange(
+            0, static_cast<int>(pool.size()) - 1);
+        perGroup[static_cast<size_t>(pool[static_cast<size_t>(pick)])] = root;
+        pool.erase(pool.begin() + pick);
+    }
+
+    // Walk the grid in group order and emit one rect per cell.
+    int x = rect.X;                                             // v33
+    int y = rect.Y;                                             // v34
+    for (int g = 0; g < b; ++g)
+    {
+        const int inGroup = perGroup[static_cast<size_t>(g)];   // v17
+        if (inGroup < a)                                        // short group
+        {
+            if (wide)
+                x += blockW / 2;                                // v24 / 2
+            else
+                y += blockH / 2;                                // v25 / 2
+        }
+        for (int k = 0; k < inGroup; ++k)
+        {
+            MapRectTag out;
+            out.X = x + 2;
+            out.Y = y + 2;
+            out.Width = blockW - 4;
+            out.Height = blockH - 4;
+            blocks.push_back(out);
+            x += innerStepX;
+            y += innerStepY;
+        }
+        x += groupStepX;
+        y += groupStepY;
+        if (wide)
+            x = rect.X;
+        else
+            y = rect.Y;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// GenerateContinent (sub_59AFA0) - LandType 1 "continent" (single land mass).
+//
+// One organic land mass is grown from an ellipse until the land covers `target`
+// of the map, up to 100 patches. Every patch is seeded at the still-water cell
+// nearest (Manhattan) to the map centre, so the mass keeps closing around a
+// single core instead of scattering islands.
+//
+//   0x59afb3  this[194] = 1                       ; genCode_ = 1
+//   0x59afbd  total = 2 * MapRect.Width * (MapRect.Height + 4)   (sub_42B1F0)
+//   0x59afc2  water  = this[19]                   ; water amount, percent
+//   0x59affb  target = (1 - water*0.01)*(0.5-0.45) + 0.45        ; 0.45 .. 0.50
+//   0x59b016  maxPatch = F2I64(total * 0.03 * target)            ; 3% of total
+//   0x59b030  centre = MapRect.Height/2 + MapRect.Width/2
+//   0x59b038  seed  = (centre+1, centre)          ; first patch = map centre
+//   0x59b043  ClearWorkOccupancy()                ; work data[15] = 0, whole map
+//   0x59b0af  bounds = VisibleRect inset by 1     -> {3, 6, W-2, H-2}
+//   0x59b0ca  if (target > 0) do {
+//   0x59b0db      if (patches >= 100) break;
+//   0x59b0ed      area = min(F2I64((target - covered) * total), maxPatch)
+//   0x59b133      grown += GrowPatch(area, &bounds, seed, 1, centre, 0.75, 1)
+//   0x59b15b      covered = grown / total
+//   0x59b172      seed = nearest unoccupied cell to centre (Manhattan abs)
+//   0x59b1ef  } while (covered < target);
+//
+// GrowPatch's directional-priority origin (arg 5) is the packed cell
+// (centre+1, centre) - the same point the first patch is seeded from.
+// ---------------------------------------------------------------------------
 void RandomMapGenerator::GenerateContinent()
 {
-    // TODO: replicate sub_59AFA0 (0x59AFA0)
+    genCode_ = 1;                                       // 0x59afb3
+
+    // Total cell budget of the diamond (sub_42B1F0 @ 0x42b1f0).
+    const double total = static_cast<double>(2 * size_.mapWidth *
+                                             (size_.mapHeight + 4));  // 0x59afbd
+
+    // Target land fraction: more water -> slightly less land, 0.50 down to 0.45.
+    const double water = static_cast<double>(waterAmount_);           // 0x59afc2
+    const double target = (1.0 - water * 0.01) * (0.5 - 0.45) + 0.45; // 0x59affb
+    const int maxPatch = F2I64(total * 0.03 * target);                // 0x59b016
+
+    // The map is a rotated square: its middle cell sits at (Height/2 + Width/2)
+    // on both axes (0x59b030).
+    const int centre = size_.mapHeight / 2 + size_.mapWidth / 2;
+
+    int seedX = centre + 1;                             // 0x59b03f
+    int seedY = centre;                                 // 0x59b038
+    const int centrePacked =                             // 0x59b119 / 0x59b11e
+        (centre + 1) | (centre << 16);
+
+    ClearWorkOccupancy();                               // 0x59b043
+
+    // Bounds handed to GrowPatch: the visible rect inset by one cell each side.
+    MapRectTag bounds;
+    bounds.X      = kVisibleOffsetX + 1;                // 0x59b0af
+    bounds.Y      = kVisibleOffsetY + 1;                // 0x59b0bb
+    bounds.Width  = size_.width - 2;                    // 0x59b0c2
+    bounds.Height = size_.height - 2;                   // 0x59b0c6
+
+    int grown = 0;                                      // v12
+    int patches = 0;                                    // n100
+    double covered = 0.0;                               // v18
+
+    if (target > 0.0)                                   // 0x59b0ca
+    {
+        do
+        {
+            if (patches >= 100)                         // 0x59b0db
+                break;
+
+            // Remaining shortfall, capped at 3% of the map per patch.
+            int area = F2I64((target - covered) * total);        // 0x59b0ed
+            if (area >= maxPatch)                       // 0x59b0f8
+                area = maxPatch;                        // 0x59b0fa
+
+            grown += GrowPatch(area, &bounds,            // 0x59b133
+                               seedX | (seedY << 16),
+                               1, centrePacked, 0.75, 1);
+            ++patches;                                  // 0x59b137
+            covered = grown / total;                    // 0x59b15b
+
+            // Next seed: the still-unoccupied cell closest (Manhattan) to the
+            // centre, so each new patch grows against the existing mass.
+            int bestDistance = 50000;                   // 0x59b144
+            int bestX = 0;                              // 0x59b149 (MapCoords = 0)
+            int bestY = 0;
+            CellIterator it;                             // 0x59b15f
+            it.Reset(cellSlots_, size_.mapWidth);
+            while (MapCell* cell = it.Next())
+            {
+                const int x = cell->MapCoords & 0xFFFF;
+                const int y = static_cast<uint32_t>(cell->MapCoords) >> 16;
+                if (workCells_[x + size_.workSide * y].data[15] != 0)
+                    continue;                           // already land, skip
+
+                const int distance = std::abs(x - (centre + 1)) +
+                                     std::abs(y - centre);        // 0x59b1b1
+                if (distance < bestDistance)            // 0x59b1b5
+                {
+                    bestDistance = distance;            // 0x59b1ba
+                    bestX = x;                          // 0x59b1bc
+                    bestY = y;
+                }
+            }
+            seedX = bestX;                              // 0x59b1e2
+            seedY = bestY;                              // 0x59b1e6
+        }
+        while (covered < target);                       // 0x59b1ef
+    }
 }
 
-// sub_59B200 (TeamContinent): coin-flip horizontal/vertical split into two
-// halves, per half: seed starts at half center, then weighted-nearest
-// unoccupied cell inside half rect + ellipse; step 0.75 / mode 1,
-// shared cap 100 patches.
+// ---------------------------------------------------------------------------
+// GenerateTeamContinent (sub_59B200) - LandType 2 "team continent".
+//
+// The map is cut into two halves and every half grows its own land mass, so the
+// teams start on separate continents. A single coin flip picks the cut: two
+// horizontal bands (top / bottom) or two vertical bands (left / right). Inside a
+// half every patch is seeded at the still-water cell that passes the half's
+// ellipse test and is nearest (weighted Manhattan) to the half's centre, so each
+// mass keeps closing around its own core.
+//
+//   0x59b200  this[194] = 1                       ; genCode_ = 1
+//   0x59afbd  total = 2 * MapRect.Width * (MapRect.Height + 4)   (sub_42B1F0)
+//   0x59b03c  target = (1 - water*0.01)*(0.2-0.15) + 0.15        ; 0.15 .. 0.20
+//   0x59b03e  maxPatch = F2I64(total * 0.06 * target)            ; 6% of total
+//   0x59b043  ClearWorkOccupancy()                ; work data[15] = 0, whole map
+//   0x59b046  roll = Random(); roll >= 0.5 -> top/bottom split, else left/right
+//   0x59b0??  for each of the two half rects:                    ; exactly 2
+//               centre = half centre in diamond coords; first seed == centre
+//               do {
+//                   if (patches >= 100) break;                   ; shared cap
+//                   area = min(F2I64((target - covered) * total), maxPatch)
+//                   grown += GrowPatch(area, &half, seed, 1, centre, 0.75, 1)
+//                   covered = grown / total
+//                   seed = nearest unoccupied cell of the half that passes the
+//                          half ellipse (weighted Manhattan; 0 -> GrowPatch
+//                          falls back to a random water cell)
+//               } while (covered < target)
+//
+// Both halves share `patches`, so the two masses together stay under 100
+// patches. GrowPatch's directional-priority origin (arg 5) is the half centre.
+// ---------------------------------------------------------------------------
 void RandomMapGenerator::GenerateTeamContinent()
 {
-    // TODO: replicate sub_59B200 (0x59B200)
+    genCode_ = 1;                                       // 0x59b200
+
+    // Total cell budget of the diamond (sub_42B1F0 @ 0x42b1f0).
+    const double total = static_cast<double>(2 * size_.mapWidth *
+                                             (size_.mapHeight + 4));
+    const double water = static_cast<double>(waterAmount_);           // 0x59b03c
+    // Team continents keep less land than a single continent: 0.20 down to 0.15.
+    const double target = (1.0 - water * 0.01) * (0.2 - 0.15) + 0.15;
+    const int maxPatch = F2I64(total * 0.06 * target);                // 0x59b03e
+
+    ClearWorkOccupancy();                               // 0x59b043
+
+    // Coin flip: two horizontal bands (top / bottom) or two vertical bands.
+    MapRectTag half[2];                                 // v40, then X/Y/W_1/H_1
+    const double roll =
+        static_cast<double>(static_cast<uint32_t>(rng_.Next())) * kUnitScale;
+    if (roll >= 0.5)                                    // 0x59b069
+    {
+        half[0].X      = kVisibleOffsetX;                // v40[0]
+        half[0].Y      = kVisibleOffsetY;                // v40[1]
+        half[0].Width  = size_.width;                    // 0x59b06d
+        half[0].Height = size_.height / 2 - 1;           // 0x59b071
+        half[1].X      = half[0].X;
+        half[1].Y      = size_.height / 2 + kVisibleOffsetY + 1;   // 0x59b079
+        half[1].Width  = half[0].Width;
+        half[1].Height = half[0].Height;
+    }
+    else
+    {
+        half[0].X      = kVisibleOffsetX;                // v40[0]
+        half[0].Y      = kVisibleOffsetY;                // v40[1]
+        half[0].Width  = size_.width / 2 - 1;            // 0x59b08c
+        half[0].Height = size_.height;                   // 0x59b088
+        half[1].X      = size_.width / 2 + kVisibleOffsetX + 1;    // 0x59b095
+        half[1].Y      = half[0].Y;
+        half[1].Width  = half[0].Width;
+        half[1].Height = half[0].Height;
+    }
+
+    int patches = 0;                                    // n100, shared by both halves
+
+    for (int h = 0; h < 2; ++h)
+    {
+        const MapRectTag& r = half[h];
+        const int rectX = r.X;                          // v26
+        const int rectY = r.Y;                          // v27
+        const int rectW = r.Width;                      // v28
+        const int rectH = r.Height;                     // v29
+
+        // Half centre in diamond coords. The first seed of the half is the centre
+        // itself and the directional-priority origin stays there all along.
+        const int centreX = rectX + rectH / 2 + rectW / 2 + rectY + 1;  // p_n2_1
+        const int centreY = rectY + size_.mapWidth + rectH / 2 - rectW / 2 - rectX; // v33
+        const int centrePacked = centreX | (centreY << 16);
+
+        // Weighted-Manhattan axis weights for the seed pick (0x59b0d6-0x59b108).
+        double weightX;                                 // v30
+        double weightY;                                 // v49
+        if (rectH <= rectW)                             // 0x59b0d6
+        {
+            weightX = 1.0;
+            weightY = static_cast<double>(rectW) / rectH * 1.2;
+        }
+        else
+        {
+            weightY = 1.0;
+            weightX = static_cast<double>(rectH) / rectW * 1.2;
+        }
+        const double invW2 = 1.0 / ((rectW * 0.5) * (rectW * 0.5));   // v53
+        const double invH2 = 1.0 / ((rectH * 0.5) * (rectH * 0.5));   // v52
+
+        int grown = 0;                                  // v22
+        double covered = 0.0;                           // v39
+        int seedX = centreX;                            // p_n2
+        int seedY = centreY;                            // v37
+
+        if (target > 0.0)                               // 0x59b10c
+        {
+            do
+            {
+                if (patches >= 100)                     // 0x59b10e
+                    break;
+
+                // Remaining shortfall, capped at 6% of the map per patch.
+                int area = F2I64((target - covered) * total);        // 0x59b11b
+                if (area >= maxPatch)                   // 0x59b122
+                    area = maxPatch;
+
+                grown += GrowPatch(area, &r, seedX | (seedY << 16),  // 0x59b129
+                                   1, centrePacked, 0.75, 1);
+                int bestSeed = 0;                       // p_n2_2 (MapCoords = 0)
+                ++patches;                              // 0x59b131
+                covered = grown / total;                // 0x59b137
+
+                // The half's diamond bounding box, in (x+y) / (x-y) axes.
+                const int boxMinDiff = 2 * rectX - size_.mapWidth + 1;   // v6
+                const int boxMaxDiff = boxMinDiff + 2 * rectW + 2;       // v47
+                const int boxMinSum  = size_.mapWidth + 2 * rectY + 1;   // v8
+                const int boxMaxSum  = boxMinSum + 2 * rectH + 2;        // v51
+                int bestDistance = 50000;               // n50000
+
+                // Scan the whole work grid (vanilla walks the 80-byte work array).
+                const int cellCount = size_.workSide * size_.workSide;   // 0x59b12b
+                for (int idx = 0; idx < cellCount; ++idx)                // 0x59b178
+                {
+                    const int x = idx % size_.workSide;
+                    const int y = idx / size_.workSide;
+                    const int sum = x + y;              // v12
+                    const int diff = x - y;             // v13
+                    if (sum < boxMinSum || sum > boxMaxSum)              // 0x59b18d
+                        continue;
+                    if (diff < boxMinDiff || diff > boxMaxDiff)          // 0x59b1a1
+                        continue;
+                    if (workCells_[idx].data[15] != 0)  // 0x59b1ab already land
+                        continue;
+
+                    const int packed = x | (y << 16);
+                    if (!PatchInBounds(packed, &r, 1, invW2, invH2))     // 0x59b1b9
+                        continue;
+
+                    const int distance =                     // 0x59b1c3
+                        F2I64(std::abs(y - centreY) * weightY
+                              + std::abs(x - centreX) * weightX);
+                    if (distance < bestDistance)        // 0x59b1e2
+                    {
+                        bestDistance = distance;
+                        bestSeed = packed;
+                    }
+                }
+
+                // 0 -> GrowPatch rejected-samples a random water cell instead.
+                seedX = static_cast<int16_t>(bestSeed & 0xFFFF);          // 0x59b1eb
+                seedY = static_cast<int16_t>(
+                    static_cast<uint32_t>(bestSeed) >> 16);               // 0x59b1ef
+            }
+            while (covered < target);                   // 0x59b1f8
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
-// GrowPatch - sub_59BBC0 organic patch growth engine - stub, body pending.
+// GrowPatch support - the four orthogonal steps (Neighbours table order, the
+// same order GetNeighbourCell uses; the walk advances facing by 2, 0x59c04b).
+// ---------------------------------------------------------------------------
+namespace
+{
+static const int16_t kPatchDirX[8] = { 0,  1,  1,  1,  0, -1, -1, -1 };
+static const int16_t kPatchDirY[8] = {-1, -1,  0,  1,  1,  1,  0, -1 };
+
+// Priority-queue node (vanilla Block, allocated at 0x59bbf0): 8 bytes - the
+// packed cell coordinates plus the float priority at +4 (0x59c233 / 0x59c247).
+// Nodes are handed out in order and never recycled; the heap stores pointers
+// into the node pool, which is sized once up front and never resized.
+struct PatchNode
+{
+    CellStruct coords;     // +0  (low16 X, high16 Y)
+    float      priority;   // +4
+};
+
+// 1-based min-heap over PatchNode* (vanilla heap control block, 0x14 bytes:
+// { count, capacity, slots, maxSeen, minSeen }; the two "seen" pointers are dead
+// stores in the vanilla code and are dropped here). Insertion is refused once
+// count + 1 reaches the capacity (strictly less than, 0x59bf24 / 0x59c25a).
+struct PatchHeap
+{
+    std::vector<PatchNode*> slots;    // slots[0] unused; slots[1..count] live
+    size_t count = 0;
+
+    // Sift-down (sub_5AD870): restore the heap order at `a2` after the root was
+    // overwritten by the last slot. Children of i are 2i / 2i+1; the smaller
+    // child bubbles up until both children are larger (or absent).
+    void SiftDown(size_t a2)
+    {
+        size_t v2 = a2;
+        size_t v3 = 2 * a2;
+        const size_t v4 = 2 * a2 + 1;
+        if (!(2 * a2 <= count) ||
+            slots[a2]->priority <= slots[2 * a2]->priority)
+            v3 = a2;
+        if (v4 <= count && slots[v3]->priority > slots[v4]->priority)
+            v3 = 2 * a2 + 1;
+        if (v3 == a2)
+            return;
+        do
+        {
+            const size_t v6 = 2 * v3 + 1;
+            PatchNode* v7 = slots[v2];
+            slots[v2] = slots[v3];
+            v2 = v3;
+            slots[v3] = v7;
+            if (2 * v3 <= count &&
+                slots[v3]->priority > slots[2 * v3]->priority)
+                v3 *= 2;
+            if (v6 <= count && slots[v3]->priority > slots[v6]->priority)
+                v3 = v6;
+        }
+        while (v3 != v2);
+    }
+
+    // Sift-up insert (vanilla inline: seed push 0x59bf24, neighbour push
+    // 0x59c25a). Silently dropped once count + 1 would reach the capacity.
+    void Push(PatchNode* node, int capacity)
+    {
+        size_t v = count + 1;
+        if (static_cast<int>(v) >= capacity)
+            return;
+        size_t parent = v >> 1;
+        while (v > 1 && slots[parent]->priority > node->priority)
+        {
+            slots[v] = slots[parent];
+            v = parent;
+            parent >>= 1;
+        }
+        slots[v] = node;
+        ++count;
+    }
+
+    // Pop the minimum-priority node (vanilla inline: swap root with the last
+    // slot, shrink, then sub_5AD870).
+    PatchNode* Pop()
+    {
+        if (count == 0)
+            return nullptr;
+        PatchNode* root = slots[1];
+        slots[1]     = slots[count];
+        slots[count] = nullptr;
+        --count;
+        SiftDown(1);
+        return root;
+    }
+};
+}  // namespace
+
+// ---------------------------------------------------------------------------
+// GrowPatch - sub_59BBC0 organic patch growth engine.
+//
+// Grows one organic land patch over the still-water cells: a min-heap holds the
+// frontier, the top cell becomes land, its four orthogonal water neighbours are
+// pushed with a priority, and a gaussian-drifting cursor steers the growth, so
+// the patch shape is the wetting footprint of the cursor walk.
+//
+//   A 0x59bbcc  area = max(area, 400); capacity = max(8*area + 2, 100)
+//   B 0x59bc7c  seed = seedXY, or a random water cell (200 tries, then fail)
+//   C 0x59be02  aspect weights (v85/v86) + cursor = seed + seed push + pop
+//               + ellipse reciprocals (1/(W/2)^2, 1/(H/2)^2)
+//   D 0x59bfe4  growth loop: mark land, IsoTileTypeIndex = 0, push water
+//               neighbours, advance cursor by one 2-D gaussian step, pop
+//   E 0x59c332  drain the leftover queue (frontier fringe becomes land too)
+//   F 0x59c405  SmoothWaterBody(genCode, 1), then reclaim the shore family cells
+//   G 0x59c486  success: return cells grown, ++genCode_; failure: roll back
+//               every cell marked with this generation to plain water
 // Full annotated walkthrough: sub_59BBC0_注释.md.
 // ---------------------------------------------------------------------------
-int RandomMapGenerator::GrowPatch(int /*area*/, const MapRectTag* /*bounds*/,
-                                  int /*seedXY*/, int /*boundsMode*/,
-                                  int /*centerXY*/, double /*step*/,
-                                  int /*priorityMode*/)
+int RandomMapGenerator::GrowPatch(int area, const MapRectTag* bounds,
+                                  int seedXY, int boundsMode,
+                                  int centerXY, double step,
+                                  int priorityMode)
 {
-    // TODO: replicate sub_59BBC0 (0x59BBC0)
+    // A. Capacity (0x59bbcc) - the 400 floor also raises the loop target.
+    if (area <= 400)                                        // 0x59bbd2
+        area = 400;
+    int capacity = 8 * area + 2;                            // 0x59bbdc
+    if (capacity <= 100)                                    // 0x59bbea
+        capacity = 100;
+
+    std::vector<PatchNode> pool(capacity);                  // Block, 0x59bbf0
+    PatchHeap heap;                                         // 0x59bc11
+    heap.slots.assign(capacity + 1, nullptr);
+    int used = 0;                                           // n100_2
+
+    // B. Seed (0x59bc7c): the packed seed, or a rejected-sampled water cell.
+    int seedX;
+    int seedY;
+    if (seedXY != 0)                                        // 0x59bdec
+    {
+        seedX = static_cast<int16_t>(seedXY & 0xFFFF);
+        seedY = static_cast<int16_t>(static_cast<uint32_t>(seedXY) >> 16);
+    }
+    else
+    {
+        for (int tries = 0;;)                               // 0x59bc85
+        {
+            unsigned int rx;
+            do
+            {
+                rx = static_cast<unsigned int>(F2I64(
+                    static_cast<double>(static_cast<uint32_t>(rng_.Next())) *
+                    static_cast<double>(size_.mapWidth) * kUnitScale));
+            }
+            while (rx > static_cast<unsigned int>(size_.mapWidth - 1));
+            unsigned int ry;
+            do
+            {
+                ry = static_cast<unsigned int>(F2I64(
+                    static_cast<double>(static_cast<uint32_t>(rng_.Next())) *
+                    static_cast<double>(size_.mapHeight) * kUnitScale));
+            }
+            while (ry > static_cast<unsigned int>(size_.mapHeight - 1));
+
+            seedX = static_cast<int>(ry) + static_cast<int>(rx) + 1;  // 0x59bcd8
+            seedY = size_.mapWidth - static_cast<int>(rx)
+                    + static_cast<int>(ry);                     // 0x59bce0
+            ++tries;                                        // 0x59bcec
+            if (tries >= 200)                               // 0x59bcf2
+                return 0;
+
+            if (workCells_[seedX + size_.workSide * seedY].data[14] == 0 &&
+                IsWaterFamilyTile(CellAt(seedX, seedY)))    // 0x59bd1e
+                break;
+        }
+    }
+
+    // C. Aspect weights (0x59be46) - only consumed by the directional priority.
+    float weightA = 0.0f;                                   // v86
+    float weightB = 0.0f;                                   // v85
+    if (bounds != nullptr)                                  // sentinel test 0x59be02
+    {
+        if (bounds->Width <= bounds->Height)                // 0x59be4a
+        {
+            weightB = 1.0f;
+            weightA = static_cast<float>(
+                static_cast<double>(bounds->Height) /
+                static_cast<double>(bounds->Width) * 1.2);  // fidiv, 0x59be5a
+        }
+        else
+        {
+            weightA = 1.0f;
+            weightB = static_cast<float>(
+                static_cast<double>(bounds->Width) /
+                static_cast<double>(bounds->Height) * 1.2);
+        }
+    }
+
+    // Cursor starts on the seed (0x59bea7), in double precision.
+    double cursorX = static_cast<double>(seedX);            // v95
+    double cursorY = static_cast<double>(seedY);            // v96
+
+    pool[0].coords.X = static_cast<int16_t>(seedX);         // 0x59bece
+    pool[0].coords.Y = static_cast<int16_t>(seedY);
+    pool[0].priority = 0.0f;
+    workCells_[seedX + size_.workSide * seedY].data[15] = genCode_;  // 0x59bf0c
+    used = 1;
+    heap.Push(&pool[0], capacity);                          // 0x59bf24
+    PatchNode* node = heap.Pop();                           // 0x59bf6b
+
+    // Ellipse reciprocals handed to sub_59BAB0 (0x59bfab).
+    const double halfWidth  = bounds ? bounds->Width * 0.5 : 0.0;
+    const double halfHeight = bounds ? bounds->Height * 0.5 : 0.0;
+    const double invHalfWidthSq  = bounds ? 1.0 / (halfWidth * halfWidth) : 0.0;
+    const double invHalfHeightSq =
+        bounds ? 1.0 / (halfHeight * halfHeight) : 0.0;
+
+    // D. Growth loop (0x59bfe4). The seed cell runs one full round too, so the
+    // cell count starts from it.
+    int grown = 0;                                          // n400_2
+    while (node != nullptr)                                 // 0x59bfe4
+    {
+        const int cx = node->coords.X;
+        const int cy = node->coords.Y;
+        workCells_[cx + size_.workSide * cy].data[14] = genCode_;  // 0x59c014
+        CellAt(cx, cy)->IsoTileTypeIndex = 0;               // 0x59c02b
+
+        for (int facing = 0; facing < 8; facing += 2)       // 0x59c04b
+        {
+            const int nx = cx + kPatchDirX[facing];
+            const int ny = cy + kPatchDirY[facing];
+            if (!CellExists(nx, ny))                        // 0x59c0a9
+                continue;
+
+            const int wi = nx + size_.workSide * ny;
+            if (workCells_[wi].data[14] != 0 ||
+                workCells_[wi].data[15] == genCode_)        // 0x59c0f0
+                continue;
+
+            MapCell* neighbour = CellAt(nx, ny);
+            if (!IsWaterFamilyTile(neighbour))              // 0x59c10c
+                continue;
+            if (used >= capacity)                           // 0x59c11a
+                continue;
+            if (!PatchInBounds(nx | (ny << 16), bounds, boundsMode,
+                               invHalfWidthSq, invHalfHeightSq))  // 0x59c158
+                continue;
+
+            const int curX = F2I64(cursorX + 0.5);          // 0x59c16b
+            const int curY = F2I64(cursorY + 0.5);          // 0x59c19e
+            double priority;
+            if (priorityMode)                               // 0x59c1ab
+            {
+                priority = PatchDirectionalPriority(
+                    curX | (curY << 16), nx | (ny << 16), bounds,
+                    centerXY, weightA, weightB);
+            }
+            else                                            // 0x59c1d7
+            {
+                const int dx = nx - curX;
+                const int dy = ny - curY;
+                // YRMath::sqrt (0x4cac40) - the game's table sqrt, not libm's;
+                // see MapGenFastSqrt.h for why the difference matters here.
+                const double dist = static_cast<double>(MapGenFastSqrt::Sqrt(
+                    static_cast<double>(dx * dx + dy * dy)));   // 0x59c1c9
+                priority =
+                    static_cast<double>(static_cast<uint32_t>(rng_.Next())) *
+                    5.0 * kUnitScale + dist;                    // 0x59c1d7
+            }
+
+            PatchNode* pushed = &pool[used];                // 0x59c233
+            pushed->coords.X = static_cast<int16_t>(nx);
+            pushed->coords.Y = static_cast<int16_t>(ny);
+            pushed->priority = static_cast<float>(priority);
+            workCells_[wi].data[15] = genCode_;
+            ++used;
+            heap.Push(pushed, capacity);                    // 0x59c25a
+        }
+
+        cursorX += rng_.Gaussian() * step;                  // 0x59c2c1
+        cursorY += rng_.Gaussian() * step;                  // 0x59c2d6
+        ++grown;                                            // 0x59c2e7
+
+        node = heap.Pop();                                  // 0x59c2f9
+        if (grown >= area)                                  // 0x59c32c
+            break;
+    }
+
+    // E. Drain the leftover queue (0x59c332): the queued frontier fringe turns
+    // to land as well, so the patch does not end in half-cell zigzag. No RNG.
+    for (PatchNode* left = heap.Pop(); left != nullptr; left = heap.Pop())
+    {
+        const int px = left->coords.X;
+        const int py = left->coords.Y;
+        const int wi = px + size_.workSide * py;
+        if (workCells_[wi].data[14] == 0 &&
+            IsWaterFamilyTile(CellAt(px, py)))              // 0x59c35e
+        {
+            CellAt(px, py)->IsoTileTypeIndex = 0;           // 0x59c36f
+            workCells_[wi].data[14] = genCode_;
+        }
+        ++grown;                                            // 0x59c3c0
+    }
+
+    // F. Smoothing check, then the shore family cells are reclaimed as land
+    // (0x59c43d / 0x59c449).
+    const bool smoothed = SmoothWaterBody(genCode_, 1);     // 0x59c43d
+    {
+        CellIterator it;
+        it.Reset(cellSlots_, size_.mapWidth);
+        while (MapCell* cell = it.Next())
+        {
+            if (cell->IsoTileTypeIndex >= shorePieces_ &&
+                cell->IsoTileTypeIndex < shorePieces_ + 42)
+            {
+                cell->IsoTileTypeIndex = 0;                 // 0x59c46b
+                cell->Height = 0;
+            }
+        }
+    }
+
+    // G. Success / rollback (0x59c486).
+    if (smoothed)                                           // 0x59c51b
+    {
+        const int result = grown;
+        ++genCode_;                                         // 0x59c51e
+        return result;
+    }
+
+    CellIterator rollback;
+    rollback.Reset(cellSlots_, size_.mapWidth);
+    while (MapCell* cell = rollback.Next())
+    {
+        const int x = cell->MapCoords & 0xFFFF;
+        const int y = static_cast<uint32_t>(cell->MapCoords) >> 16;
+        WorkCell& w = workCells_[x + size_.workSide * y];
+        if (w.data[14] == genCode_)                         // 0x59c4c0
+        {
+            w.data[14] = 0;                                 // 0x59c4d4
+            w.Byte(75) = 0;                                 // 0x59c4dc
+            cell->IsoTileTypeIndex = waterTileIndex_;       // 0x59c4e4
+            cell->Height = 0;
+            cell->Level = baseLevel_;                       // 0x59c4f0
+        }
+    }
     return 0;
+}
+
+// ---------------------------------------------------------------------------
+// PatchInBounds - sub_59BAB0, the patch's boundary test.
+//
+// The all-zero sentinel rect (nullptr here) accepts everything. Otherwise the
+// mode selects one of two tests:
+//
+//   mode 0 (0x59bb87) - plain AABB: the cell's X / Y must fall inside
+//     [rect.X, rect.X + rect.Width) and [rect.Y, rect.Y + rect.Height).
+//
+//   mode 1 (0x59bb00) - ellipse: the diamond coords are first rotated into
+//     screen space, then the rect is centred on itself and the cell must satisfy
+//     u^2 * (1/(W/2)^2) + v^2 * (1/(H/2)^2) < 1, where
+//       u = (X - 2*rect.X - Y + Width' - 1) * 0.5 - rect.Width  * 0.5
+//       v = (X - 2*rect.Y - Width' + Y - 1) * 0.5 - rect.Height * 0.5
+//     and Width' is the map's diamond row width (MouseClass MapRect.Width).
+// ---------------------------------------------------------------------------
+bool RandomMapGenerator::PatchInBounds(int cellXY, const MapRectTag* bounds,
+                                       int boundsMode,
+                                       double invHalfWidthSq,
+                                       double invHalfHeightSq) const
+{
+    if (bounds == nullptr)                                  // 0x59bae5 sentinel
+        return true;
+
+    const int cellX = static_cast<int16_t>(cellXY & 0xFFFF);
+    const int cellY = static_cast<int16_t>(static_cast<uint32_t>(cellXY) >> 16);
+
+    if (boundsMode)                                         // 0x59baf4 ellipse
+    {
+        const double u = (cellX - 2 * bounds->X - cellY
+                          + size_.mapWidth - 1) * 0.5
+                         - bounds->Width * 0.5;             // 0x59bb3f
+        const double v = (cellX - 2 * bounds->Y - size_.mapWidth + cellY - 1)
+                         * 0.5
+                         - bounds->Height * 0.5;            // 0x59bb54
+        return v * v * invHalfHeightSq + u * u * invHalfWidthSq < 1.0;
+    }
+
+    // 0x59bb87 plain AABB.
+    return cellX >= bounds->X && cellX < bounds->X + bounds->Width &&
+           cellY >= bounds->Y && cellY < bounds->Y + bounds->Height;
+}
+
+// ---------------------------------------------------------------------------
+// PatchDirectionalPriority - sub_59B940, priority mode 1.
+//
+// Scores one candidate cell for the continent / team-continent generators. The
+// region centre -> candidate vector is taken in screen space (u along (x-y)/2,
+// v along (x+y)/2), normalised, weighted per axis and multiplied by the
+// Chebyshev distance from the cursor to the candidate. Candidates that point
+// along the region's long axis therefore score highest, which is what stretches
+// the patch.
+//
+// With the all-zero sentinel rect (nullptr here) it degenerates to the plain
+// Euclidean cursor -> candidate distance. No RNG.
+// ---------------------------------------------------------------------------
+double RandomMapGenerator::PatchDirectionalPriority(int cursorXY, int cellXY,
+                                                    const MapRectTag* bounds,
+                                                    int centreXY,
+                                                    float weightA,
+                                                    float weightB) const
+{
+    const int cursorX = static_cast<int16_t>(cursorXY & 0xFFFF);
+    const int cursorY = static_cast<int16_t>(static_cast<uint32_t>(cursorXY) >> 16);
+    const int cellX   = static_cast<int16_t>(cellXY & 0xFFFF);
+    const int cellY   = static_cast<int16_t>(static_cast<uint32_t>(cellXY) >> 16);
+
+    // 0x59b979 sentinel rect: plain Euclidean distance.
+    if (bounds == nullptr)
+    {
+        const int dx = cursorX - cellX;                     // 0x59ba7b
+        const int dy = cursorY - cellY;
+        return static_cast<double>(MapGenFastSqrt::Sqrt(
+            static_cast<double>(dx * dx + dy * dy)));        // 0x59ba94
+    }
+
+    const int centreX = static_cast<int16_t>(centreXY & 0xFFFF);
+    const int centreY =
+        static_cast<int16_t>(static_cast<uint32_t>(centreXY) >> 16);
+
+    // Centre -> candidate, rotated into screen space (arithmetic shifts, so
+    // negative coordinates floor toward -inf exactly like the x86 sar).
+    const int du = std::abs(((cellX - cellY) >> 1) -
+                            ((centreX - centreY) >> 1));     // v10, 0x59b9b1
+    const int dv = std::abs(((cellX + cellY) >> 1) -
+                            ((centreX + centreY) >> 1));     // v12, 0x59b9c4
+    if (du == 0 && dv == 0)                                  // 0x59b9d4
+        return 0.0;
+
+    const double len = static_cast<double>(MapGenFastSqrt::Sqrt(
+        static_cast<double>(du * du + dv * dv)));            // v14, 0x59b9fe
+
+    int chebyshev = std::abs(cursorY - cellY);               // v15
+    const int dxAbs = std::abs(cursorX - cellX);             // v21
+    if (dxAbs > chebyshev)                                   // 0x59ba3e
+        chebyshev = dxAbs;
+
+    const double unitU = du / len;                           // v20, 0x59ba36
+    const double unitV = dv / len;                           // v17, 0x59ba3a
+    return (unitV * weightB + weightA * unitU) * chebyshev;  // 0x59ba58
 }
 
 // ---------------------------------------------------------------------------
@@ -583,6 +1671,7 @@ void RandomMapGenerator::GenerateSpecialTerrain()
     // main river per map); on success the generation code is incremented
     // again, freeing a fresh code for the next water body (lakes).
     int landType = static_cast<int>(config_.landType);          // 0x59c594 mov eax,[esi+3Ch]
+    DiagLog("SPEC g=%d landType=%d water=%d", genCode_, landType, waterAmount_);
     if ((landType == 3 || landType == 4) && waterAmount_ > 20)  // 0x59c598/0x59c5a3/0x59c5a8
     {
         for (int i = 0; i < 10; ++i)                            // 0x59c5b5 max 10 tries
@@ -590,11 +1679,14 @@ void RandomMapGenerator::GenerateSpecialTerrain()
             // Zero the start before each attempt -> (0,0) = automatic
             // mode (random edge start)
             int startXY = 0;                                    // 0x59c5c1/0x59c5c6 v6=v7=0
+            DiagLog("RIVER-TRY %d", i);
             if (GenerateRiver(&startXY, 0.0, false))            // 0x59c5cb top-level call
             {
                 ++genCode_;                                     // 0x59c5db
+                DiagLog("RIVER-OK g=%d", genCode_);
                 break;                                          // 0x59c5db
             }
+            // [SNAPSHOT-OFF] SaveStageSnapshot("GenerateRiver");
         }
     }
     // ---- Stage 2: independent lakes (0x59c5e8 - 0x59c60b) ----
@@ -610,9 +1702,12 @@ void RandomMapGenerator::GenerateSpecialTerrain()
     for (int i = 0; i < 10; ++i)                                // 0x59c5e8 max 10 tries
     {
         int lakeSeed = 0;                                       // 0x59c5f5 (0,0) = automatic
+        DiagLog("LAKE-TRY %d", i);
         if (GenerateLake(&lakeSeed))                            // 0x59c5fb
         {
+            // [SNAPSHOT-OFF] SaveStageSnapshot("GenerateLake");
             ++genCode_;                                         // 0x59c605
+            DiagLog("LAKE-OK g=%d", genCode_);
             return;                                             // 0x59c60b return 1
         }
     }
@@ -699,8 +1794,11 @@ MapCell* RandomMapGenerator::GetNeighbourCell(const MapCell* cell, int facing)
 // ---------------------------------------------------------------------------
 void RMGSettings::SetDefaults()
 {
-    MinTiberium = 900;    // RMGMinimumTiberium
-    MaxTiberium = 1050;   // RMGMaximumTiberium
+    // The values the RMG instance's own constructor installs (0x59585f /
+    // 0x595873), i.e. what the vanilla INI reader passes as the ReadInteger
+    // default. The shipped rmgmd.ini then overwrites them with 900 / 1050.
+    MinTiberium = 2500;   // RMGMinimumTiberium
+    MaxTiberium = 5500;   // RMGMaximumTiberium
     MaxTrees    = 600;    // MaxTrees
 
     // by time of day: (morning, day, dusk, night)

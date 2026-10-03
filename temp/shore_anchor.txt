@@ -1,0 +1,38 @@
+﻿========================================================================
+D:\新建文件夹\VSProject\cncnet-client-mod-base-master\ClientFiles\Maps\Cooperative\c1a01md.map
+anchor cells: 149   explained: 48 (32%)  {'rel/m2': 26, 'wat/m1': 21, 'rel/m1': 1}
+unexplained anchors (n12, mask_water, mask_relaxed) - top 15:
+   n12=19  wat=0xC1 rel=0xCF  x6
+   n12=26  wat=0x70 rel=0x7E  x5
+   n12=18  wat=0xC1 rel=0xCF  x5
+   n12=17  wat=0xC1 rel=0xCF  x5
+   n12=14  wat=0x00 rel=0x0E  x5
+   n12=27  wat=0x70 rel=0x7E  x4
+   n12=31  wat=0x70 rel=0x7E  x4
+   n12=40  wat=0x00 rel=0x0E  x4
+   n12=39  wat=0x00 rel=0x0E  x4
+   n12=36  wat=0x00 rel=0x0E  x4
+   n12=10  wat=0x00 rel=0x0E  x4
+   n12=35  wat=0x00 rel=0x0E  x4
+   n12=25  wat=0x30 rel=0x3E  x4
+   n12=25  wat=0x70 rel=0x7E  x3
+   n12=29  wat=0x70 rel=0x7E  x3
+========================================================================
+rmg_20260930_003847.map
+anchor cells: 131   explained: 86 (66%)  {'wat/m1': 36, 'rel/m2': 30, 'wat/m2': 6, 'rel/m1': 14}
+unexplained anchors (n12, mask_water, mask_relaxed) - top 15:
+   n12=11  wat=0x07 rel=0x07  x6
+   n12=9   wat=0x07 rel=0x07  x5
+   n12=1   wat=0x1C rel=0x1C  x4
+   n12=1   wat=0x1C rel=0x1E  x3
+   n12=17  wat=0xC1 rel=0xCF  x3
+   n12=19  wat=0xC1 rel=0xCF  x3
+   n12=1   wat=0x1C rel=0x3E  x2
+   n12=10  wat=0x07 rel=0x07  x2
+   n12=26  wat=0x70 rel=0x7E  x2
+   n12=3   wat=0x1C rel=0x1E  x2
+   n12=18  wat=0xC1 rel=0xC7  x1
+   n12=3   wat=0x1C rel=0x1C  x1
+   n12=27  wat=0x70 rel=0x72  x1
+   n12=18  wat=0xC1 rel=0xCD  x1
+   n12=27  wat=0x70 rel=0x7E  x1

@@ -100,6 +100,19 @@
     <ClCompile Include="MapGen.cpp" />
     <ClCompile Include="MapGenRiver.cpp" />
     <ClCompile Include="MapGenLake.cpp" />
+    <ClCompile Include="MapGenRegion.cpp" />
+    <ClCompile Include="MapGenMaking.cpp" />
+    <ClCompile Include="MapGenMakingSub.cpp" />
+    <ClCompile Include="MapGenRecalc.cpp" />
+    <ClCompile Include="MapGenStartpoint.cpp" />
+    <ClCompile Include="MapGenTech.cpp" />
+    <ClCompile Include="MapGenTiberium.cpp" />
+    <ClCompile Include="MapGenHills.cpp" />
+    <ClCompile Include="MapGenLAT.cpp" />
+    <ClCompile Include="MapGenCleanup.cpp" />
+    <ClCompile Include="MapGenRadar.cpp" />
+    <ClCompile Include="MapGenDone.cpp" />
+    <ClCompile Include="MapGenMapFile.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

@@ -1,0 +1,58 @@
+﻿========================================================================
+D:\新建文件夹\VSProject\cncnet-client-mod-base-master\ClientFiles\Maps\Cooperative\c1a01md.map
+shore cells: 675   rule-match: {'mode2': 50, 'mode1': 24}   mismatch: 601
+worst mismatches (n12, mask, which-rules-say):
+   n12=37  mask=0x00  m2=None    m1=None     x23
+   n12=42  mask=0x00  m2=None    m1=None     x21
+   n12=25  mask=0x00  m2=None    m1=None     x16
+   n12=21  mask=0x00  m2=None    m1=None     x16
+   n12=38  mask=0x00  m2=None    m1=None     x16
+   n12=14  mask=0x00  m2=None    m1=None     x16
+   n12=39  mask=0x00  m2=None    m1=None     x15
+   n12=29  mask=0x00  m2=None    m1=None     x15
+   n12=17  mask=0x00  m2=None    m1=None     x14
+   n12=41  mask=0x00  m2=None    m1=None     x14
+   n12=17  mask=0xC1  m2=None    m1=20       x12
+   n12=36  mask=0x00  m2=None    m1=None     x12
+most common (n12, mask) pairs:
+   n12=37  mask=0x00  x23
+   n12=42  mask=0x00  x21
+   n12=25  mask=0x00  x16
+   n12=21  mask=0x00  x16
+   n12=38  mask=0x00  x16
+   n12=14  mask=0x00  x16
+   n12=39  mask=0x00  x15
+   n12=29  mask=0x00  x15
+   n12=17  mask=0x00  x14
+   n12=41  mask=0x00  x14
+   n12=17  mask=0xC1  x12
+   n12=36  mask=0x00  x12
+========================================================================
+rmg_20260930_003847.map
+shore cells: 320   rule-match: {'mode1': 38, 'mode2': 36}   mismatch: 246
+worst mismatches (n12, mask, which-rules-say):
+   n12=38  mask=0x00  m2=None    m1=None     x15
+   n12=37  mask=0x00  m2=None    m1=None     x15
+   n12=21  mask=0x00  m2=None    m1=None     x12
+   n12=1   mask=0x1C  m2=None    m1=4        x11
+   n12=19  mask=0x00  m2=None    m1=None     x10
+   n12=33  mask=0x0C  m2=None    m1=4        x7
+   n12=17  mask=0x00  m2=None    m1=None     x7
+   n12=19  mask=0xC1  m2=None    m1=20       x7
+   n12=33  mask=0x06  m2=None    m1=12       x6
+   n12=11  mask=0x07  m2=None    m1=12       x6
+   n12=39  mask=0x00  m2=None    m1=None     x6
+   n12=3   mask=0x1C  m2=None    m1=4        x6
+most common (n12, mask) pairs:
+   n12=38  mask=0x00  x15
+   n12=37  mask=0x00  x15
+   n12=21  mask=0x00  x12
+   n12=1   mask=0x1C  x11
+   n12=19  mask=0x00  x10
+   n12=33  mask=0x04  x7
+   n12=33  mask=0x0C  x7
+   n12=4   mask=0x1C  x7
+   n12=17  mask=0x00  x7
+   n12=19  mask=0xC1  x7
+   n12=33  mask=0x06  x6
+   n12=11  mask=0x07  x6

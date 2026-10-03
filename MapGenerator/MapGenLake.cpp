@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // MapGenLake.cpp - lake subsystem of the random map generator
 //
 //   GenerateLake            sub_59C920   standalone lake generation
@@ -14,6 +14,7 @@
 
 #include "pch.h"
 #include "MapGen.h"
+#include "MapGenFastSqrt.h"
 
 #include <cmath>
 #include <vector>
@@ -247,6 +248,10 @@ bool RandomMapGenerator::GenerateLake(int* startXY)
 
     bool ok = true;                                       // v75
 
+    // [TEMP DIAG] lake attempt that passed the budget gate.
+    DiagLog("LAKE g=%d auto=%d remaining=%d",
+            genCode, static_cast<int>(autoMode), remaining);
+
     // ---- 2. Node block + min-heap (0x59c976 - 0x59ca07) ------------------
     int cap = 2 * remaining + 2;                          // 0x59c976
     if (cap <= 100)
@@ -348,6 +353,11 @@ bool RandomMapGenerator::GenerateLake(int* startXY)
         seedPacked = *startXY;                            // 0x59cca3
     }
 
+    // [TEMP DIAG] resolved lake seed cell.
+    DiagLog("LAKE-SEED g=%d (%d,%d)",
+            genCode, seedPacked & 0xFFFF,
+            static_cast<uint32_t>(seedPacked) >> 16);
+
     // ---- 4. Area sampling (0x59cca7 - 0x59cd76) --------------------------
     // lower = max(76, remaining); sigma = remaining / 6 (integer division),
     // mu = remaining / 3. If the mu +/- sigma window leaves [75, lower],
@@ -440,15 +450,25 @@ bool RandomMapGenerator::GenerateLake(int* startXY)
                 //   priority = 10 * rand * kUnitScale
                 //            + 0.5 * dist(neighbour, seed)
                 //            - 0.02 * expanded
+                // 距离项原版用的是 YRMath::sqrt（0x4cac40 位运算查表快速近似，
+                // 返回 float，最大相对误差约 0.003%），不是精确平方根。先前移植
+                // 误用 std::sqrt(double)，距离项的细微偏差在随机项接近时翻转
+                // 小顶堆在相邻前沿格之间的选择，湖形因此长出原版没有的单格水
+                // 刺/陆尖角（后续铺岸片无法覆盖）。这里按原版逐位复刻。
                 const int dx = seedX - nx;                // 0x59cfda
                 const int dy = seedY - ny;                // 0x59cfe1
                 const int d2 = dx * dx + dy * dy;
                 const double randUnit =
                     (double)(uint32_t)rng_.Next() * kUnitScale;
-                const float dist = (float)std::sqrt((double)d2);
-                const float priority = (float)(10.0 * randUnit
-                                     + 0.5 * (double)dist
-                                     - 0.02 * (double)expanded);
+                const float dist = MapGenFastSqrt::Sqrt((double)d2);  // 0x59cff3
+                // 原版 x87 链：fild 随机数 -> fmul kUnitScale(double) -> fld 10.0
+                // -> 距离 fmul 0.5(float) -> expanded fild -> fmul 0.02(float)
+                // -> fstp dword。中间在 80 位寄存器，最后落 float；SSE2 下全程
+                // double 再转 float 与该结果只差末位，故字面量按原版取 float。
+                const float priority = static_cast<float>(
+                    10.0 * randUnit
+                    + 0.5 * static_cast<double>(dist)
+                    - static_cast<double>(0.02f) * static_cast<double>(expanded));
 
                 nw.data[15] = genCode;                    // 0x59d05c (occupies)
                 if (nodes.size() < (size_t)cap)
@@ -502,9 +522,10 @@ bool RandomMapGenerator::GenerateLake(int* startXY)
         ok = false;
 
     // ---- 7a. Finish (0x59d25e - 0x59d3ac) --------------------------------
-    // Auto mode only: smooth, then lakeshore-expand, then stamp the shore tile
-    // over the cells the expansion left as placeholders. A specified-seed lake
-    // (river exit) skips all of it - the river caller post-processes.
+    // Auto mode only: smooth, then lakeshore-expand, then stamp the green
+    // ground tile over the cells the expansion left as placeholders. A
+    // specified-seed lake (river exit) skips all of it - the river caller
+    // post-processes.
     if (ok && autoMode)
     {
         if (SmoothWaterBody(genCode, 0))                  // 0x59d289 sub_57A0C0
@@ -521,7 +542,7 @@ bool RandomMapGenerator::GenerateLake(int* startXY)
                         continue;
                     const int tile = c->IsoTileTypeIndex; // 0x59d386
                     if (tile == 0 || tile == 0xFFFF)      // 0x59d393
-                        c->IsoTileTypeIndex = shoreTileIndex_;  // 0x59d39b
+                        c->IsoTileTypeIndex = greenTileIndex_;  // 0x59d39b (dword_AA0E18)
                 }
             }
             else
@@ -539,6 +560,7 @@ bool RandomMapGenerator::GenerateLake(int* startXY)
     if (ok)
     {
         usedWaterCells_ += expanded;                      // 0x59d2d5
+        DiagLog("LAKE-OK g=%d expanded=%d", genCode, expanded);
         return true;                                      // 0x59d2e3
     }
 

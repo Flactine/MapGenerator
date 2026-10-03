@@ -1,0 +1,18 @@
+﻿========================================================================
+rmg_20260930_003847.map
+water cells: 353   of which still carrying a reclaim code: 3
+   by code: {199: 3}
+0xFFFF cells: 7158   of which matching a reclaim code: 0
+   by code: {}
+========================================================================
+rmg_20260930_000148.map
+water cells: 610   of which still carrying a reclaim code: 2
+   by code: {31: 2}
+0xFFFF cells: 6614   of which matching a reclaim code: 21
+   by code: {199: 4, 31: 8, 124: 3, 241: 6}
+========================================================================
+D:\新建文件夹\VSProject\cncnet-client-mod-base-master\ClientFiles\Maps\Cooperative\c1a01md.map
+water cells: 3438   of which still carrying a reclaim code: 92
+   by code: {31: 60, 124: 14, 199: 15, 241: 2, 177: 1}
+0xFFFF cells: 371   of which matching a reclaim code: 0
+   by code: {}

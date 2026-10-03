@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Large game data archives (ra2.mix is ~269MB, ra2md.mix ~195MB) - far above
+# GitHub's 100MB per-file hard limit, so they must never be committed.
+*.mix

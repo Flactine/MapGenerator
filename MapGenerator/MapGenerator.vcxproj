@@ -5,7 +5,11 @@
     <ProjectGuid>{cc7807e3-a330-45ef-ae01-73aadc69c44e}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>MapGenerator</RootNamespace>
-    <WindowsTargetPlatformVersion Condition=" '$(WindowsTargetPlatformVersion)' == '' ">10.0.19041.0</WindowsTargetPlatformVersion>
+    <!-- 不要钉死具体 SDK 版本：写成字面量 “10.0” 时，VS 会按本机已安装的最新
+         10.x SDK 自动解析（见 MSBuild\Microsoft\VC\v170\Microsoft.Cpp.WindowsSDK.props
+         的 GetLatestSDKTargetPlatformVersion 分支）。若钉成 10.0.19041.0，别人机器上
+         只装了 10.0.22621.0 之类的版本时就会找不到 windows.h / UCRT 而整片报错。 -->
+    <WindowsTargetPlatformVersion Condition=" '$(WindowsTargetPlatformVersion)' == '' ">10.0</WindowsTargetPlatformVersion>
     <WindowsTargetPlatformMinVersion>10.0.18362.0</WindowsTargetPlatformMinVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
